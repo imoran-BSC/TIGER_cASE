@@ -1,15 +1,15 @@
 /*
- *  ARTIFICIAL_READ_MAKER.CPP
+ * ARTIFICIAL_READ_MAKER.CPP
  *
- *  Reads a list of SNPs and a fasta genome, and generates
- *  all possible reads overlapping the SNPs, a histogram of
- *  the SNP density in each base, and a list of the discarded
- *  excessively polymorphic regions
+ * Reads a list of SNPs and a fasta genome, and generates
+ * all possible reads overlapping the SNPs, a histogram of
+ * the SNP density in each base, and a list of the discarded
+ * excessively polymorphic regions
  *
- *  Written by: Ignasi Moran
+ * Written by: Ignasi Moran
  */
 
-#include "../99_utils/class_fstream.h"
+#include "../utils/class_fstream.h"
 
 
 using namespace std;

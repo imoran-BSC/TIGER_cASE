@@ -1,20 +1,20 @@
 /*
- * Allelic Imba: Filter and Unify
+ * FILTER AND UNIFY
  *
  * Reads all dbSNP142_quantification.txt files, and a .vcf genotype file,
  * with the genotypes in columns in any order (automatic matching w given RNAseq sample names),
  * and filters the data and creates a single file with all the imba information.
  *
- * Last modified: 08/12/16
+ * Written by: Ignasi Moran
  */
 
-#include "../includes.h"
-#include "../class_fstream.h"
-#include "../allelic_imba_common.h"  // Contains the functions to calculate imba, covg criteria
+// #include "../utils/includes.h"
+#include "../utils/class_fstream.h"
+#include "../utils/allelic_imba_common.h"  // Contains the functions to calculate imba, covg criteria
 
 using namespace std;
 
-bool debug = 1;  // DEBUG FLAG
+bool debug = 0;  // DEBUG FLAG
 unsigned cloncounter=0;  // Counter of discarded events due to clonality
 const unsigned min_gtype_consist = 3;  // Min number of samples to check genotype consistency with RNAseq
 const double benj_fdr = 0.01;  // 1% FDR Benjamini-Hochberg threshold per sample
@@ -470,7 +470,7 @@ for( unsigned u=0; u<num_rnaseq_samples; u++ )
   try { hi_inp = new class_fstream; }  // Using NEW and DELETE so that the file does not go out of scope
   catch (bad_alloc& ba) { cout << "bad_alloc caught: " << ba.what() << "\n"; }
 
-  if( !hi_inp->obre( path + rnaseq_vec[u] + "/" + standard_path + "dbSNP142_quantification.txt",
+  if( !hi_inp->open( path + rnaseq_vec[u] + "/" + standard_path + "dbSNP142_quantification.txt",
       "in", rnaseq_vec[u] + "_standard") )
     snp_invec.push_back( hi_inp );
   else return 1;
@@ -479,20 +479,20 @@ for( unsigned u=0; u<num_rnaseq_samples; u++ )
   try { hi_inp = new class_fstream; }  // Using NEW and DELETE so that the file does not go out of scope
   catch (bad_alloc& ba) { cout << "bad_alloc caught: " << ba.what() << "\n"; }
 
-  if( !hi_inp->obre( path + rnaseq_vec[u] + "/" + nonclonal_path + "dbSNP142_quantification.txt",
+  if( !hi_inp->open( path + rnaseq_vec[u] + "/" + nonclonal_path + "dbSNP142_quantification.txt",
       "in", rnaseq_vec[u] + "_nonclonal" ) )
     nc_invec.push_back( hi_inp );
   else return 1;
   }
 
-if( !genoty_in.obre   ( genotypath, "in", "genotype" ) &&
-    !forbidden_in.obre( blackpath,  "in", "blacklist" ) &&
+if( !genoty_in.open   ( genotypath, "in", "genotype" ) &&
+    !forbidden_in.open( blackpath,  "in", "blacklist" ) &&
 
-    !AR_bias_out.obre   ( outpath + "Allelic_Imba_AR_biases.txt", "out" ) &&  // Per-sample per-dinucleotide allelic ratio biases, for posterior correction
-    !fullinfo_out.obre  ( outpath + "Allelic_Imba_compiled.txt", "out" ) && // All info, pre filtering
-    !fullnoncl_out.obre ( outpath + "Allelic_Imba_compiled_nonclonal.txt", "out" ) && // Non-clonal info, pre filtering
-    !trim_out.obre      ( outpath + "Allelic_Imba_trimmed.txt", "out" ) &&  // Trimmed results to only 3+ valid heterozgous SNPs
-    !benj_out.obre      ( outpath + "Allelic_Imba_Benjamini.txt", "out" ) )  // Per-sample Benjamini Hockberg thresholds
+    !AR_bias_out.open   ( outpath + "Allelic_Imba_AR_biases.txt", "out" ) &&  // Per-sample per-dinucleotide allelic ratio biases, for posterior correction
+    !fullinfo_out.open  ( outpath + "Allelic_Imba_compiled.txt", "out" ) && // All info, pre filtering
+    !fullnoncl_out.open ( outpath + "Allelic_Imba_compiled_nonclonal.txt", "out" ) && // Non-clonal info, pre filtering
+    !trim_out.open      ( outpath + "Allelic_Imba_trimmed.txt", "out" ) &&  // Trimmed results to only 3+ valid heterozgous SNPs
+    !benj_out.open      ( outpath + "Allelic_Imba_Benjamini.txt", "out" ) )  // Per-sample Benjamini Hockberg thresholds
   {
   string strheader;
   size_t p1=0, p2=0;
@@ -608,7 +608,7 @@ for(unsigned sample=0; sample<num_rnaseq_samples; sample++)
 while( !snp_invec.empty() )
   {  // Removes all new pointers without leaking
   hi_inp = snp_invec.back();
-  hi_inp->tanca();  // Closes the associated file
+  hi_inp->close();  // Closes the associated file
   snp_invec.pop_back();
   delete hi_inp;
   }
@@ -698,7 +698,7 @@ nonclon_map.clear();  // And removes the nonclonal map to free the ram
 while( !nc_invec.empty() )
   {  // Removes all new pointers without leaking
   hi_inp = nc_invec.back();
-  hi_inp->tanca();  // Closes the associated file
+  hi_inp->close();  // Closes the associated file
   nc_invec.pop_back();
   delete hi_inp;
   }
@@ -746,8 +746,8 @@ for( unsigned sample=0; sample < num_rnaseq_samples; sample++ )
 
 cout << "Done." << endl;
 
-forbidden_in.tanca(); genoty_in.tanca();
-trim_out.tanca(); fullinfo_out.tanca(); fullnoncl_out.tanca(); AR_bias_out.tanca();
+forbidden_in.close(); genoty_in.close();
+trim_out.close(); fullinfo_out.close(); fullnoncl_out.close(); AR_bias_out.close();
 }
 
 
