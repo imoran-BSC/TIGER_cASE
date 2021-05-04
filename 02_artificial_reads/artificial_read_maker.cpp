@@ -7,8 +7,8 @@
  *  excessively polymorphic regions
  */
 
-#include "../99_utils/includes.h"
 #include "../99_utils/class_fstream.h"
+
 
 using namespace std;
 const bool debug = 0;  // DEBUG FLAG
@@ -49,7 +49,7 @@ public:
 };
 
 class class_snp
-{  // Conte la info d'un dbSNP en format 1kG
+{  // Info of a dbSNP in 1kG format
 public:
   unsigned pose;
   double maf;
@@ -90,7 +90,7 @@ public:
 };
 
 class class_newread
-{  // Conte els metodes per crear, actualitzar i escriure new readSNPs
+{  // Methods to create, update and write new readSNPs
 public:
   unsigned status, ini_pose;
   string chr, nucleotides;
@@ -118,8 +118,9 @@ public:
     }
 
   void write_reads( class_fstream& out, class_fstream& forbidden, map<int, int>& snp_density_map )
-    {  // Amb la cadena de nts i tots els SNPs que hi solapen, crea tots els possibles reads
-       // i els escriu a la sortida, a part de fer un histograma del num de SNPs / read_length.
+    {  // With the nucleotide chain and all overlapping SNPs,
+       // creates all possible reads and writes them out, plus
+       // makes an hustogram of the number of SNPs / read_length.
     bool forbidden_on=0, contained_in_exon=0;
     unsigned vec_indx=0, nt_vec_current_size, asnps_size,
       vec_len = snp_vec.size(), str_length = nucleotides.size();
@@ -145,7 +146,7 @@ public:
       for(exon_it = exons_map.begin(); exon_it != exons_map.end(); ++exon_it )
         if( ini_pose+k >= (*exon_it).second.ini &&
             ini_pose+k+read_length <= (*exon_it).second.fin )
-          { contained_in_exon = 1; break; } // El read cau dins d'un exo completament
+          { contained_in_exon = 1; break; } // Read completely contained within exon
 
       while( vec_indx < vec_len &&
              snp_vec[vec_indx].pose <= k+ini_pose+read_length )  // Add active SNPs
@@ -153,7 +154,7 @@ public:
           active_snps.push_back(snp_vec[vec_indx]); vec_indx++; }
       asnps_size = active_snps.size();
 
-      map_it = snp_density_map.find( asnps_size );  // Fa un histograma de la densitat d'SNPs
+      map_it = snp_density_map.find( asnps_size );  // Histogram of SNP density
       if( map_it == snp_density_map.end() ) snp_density_map[ asnps_size ] = 1;
       else (*map_it).second++;
 
@@ -205,10 +206,11 @@ public:
           for(unsigned j=0; j<nt_vec_current_size; j++)
             {  // Write reads to output in fasta phred33 format
             ss.str(""); read_tmp = "";
-            // Header del read, conte la info d'on s'ha generat, el num d'SNPs solapants i num del read
+            // Read header, contains info about where was it generated,
+            // number of overlapping SNPs and of the read itself
             ss << "@" << chr << ":" << ini_pose+k+1 << ":" << pow(2,asnps_size) << ":" << j;
             read_tmp = ss.str() + "\n" + nt_vec[j] + "\n+\n";
-            for(unsigned i=0; i<read_length; i++) read_tmp += "I";  // Quality, en phred33 casi-max
+            for(unsigned i=0; i<read_length; i++) read_tmp += "I";  // Quality, in phred33 its almost max
 
             out.file << read_tmp << "\n"; read_counter++;
             }
@@ -218,7 +220,7 @@ public:
           forbidden_on=1;
           forbidden_reg.chr = chr; forbidden_reg.ini = ini_pose+k+1;
           for( asnps_it = active_snps.begin(); asnps_it != active_snps.end(); ++asnps_it )
-            forbidden_reg.snp_set.insert( (*asnps_it).name );  // Llista d'SNPs de la regio
+            forbidden_reg.snp_set.insert( (*asnps_it).name );  // List of SNPs in the region
           }
         }
       }
@@ -245,10 +247,10 @@ public:
 };
 
 class class_junction
-{  // Conte la info d'una junction
+{  // Junction info
 public:
   bool active_leftmost, close_left, close_right;
-  unsigned leftmost, rightmost;  // Son la ultima i primera base dels exons, respectivament
+  unsigned leftmost, rightmost;  // Last and first exon bases
   string chr, left_nt, right_nt;
 
   class_gtf left_exon, right_exon;
@@ -263,33 +265,33 @@ public:
     { chr = gtf_left.chr; leftmost = gtf_left.fin; rightmost = gtf_right.ini; }
 
   void update_left_nt( string& str, unsigned& lcount )
-    {  // Inicialitza o actualitza el left nt_string
+    {  // Init or update left nt_string
     if(left_nt == "")
       left_nt = str.substr( leftmost-read_length+1 - (lcount-1)*line_char_count, string::npos );
     else left_nt = left_nt + str;
     }
 
   void close_left_nt( string& str )
-    {  // Finalitza el left nt
+    {  // Finalizes left nt
     left_nt = left_nt + str;
     left_nt = funct_to_uppercase( left_nt.substr(0, read_length-1) );
     }
 
   void update_right_nt( string& str, unsigned& lcount )
-    {  // Inicialitza o actualitza el right nt_string
+    {  // Init or update right nt_string
     if(right_nt == "")
       right_nt = str.substr( rightmost - (lcount-1)*line_char_count-1, string::npos );
     else right_nt = right_nt + str;
     }
 
   void close_right_nt( string& str )
-    {  // Finalitza el right nt
+    {  // Finalizes right nt
     right_nt = right_nt + str;
     right_nt = funct_to_uppercase( right_nt.substr(0, read_length-1) );
     }
 
   void write( class_fstream& out )
-    {  // Crea totes les permutacions i les escriu a la sortida
+    {  // Create all permutations and writeout
     int exon_limit=0;  // 0=good, 1=left, 2=right limit, 3=both, 4=both < rlen
     unsigned vec_indx=0, nt_vec_current_size, asnps_size,
       vec_len = snp_vec.size(), str_length, ini_pose = leftmost-read_length+1;
@@ -305,7 +307,7 @@ public:
 
     str_length = nucleotides.size();
 
-    // Ens quedem amb els exons més propers a leftmost/rightmost
+    // Keep nearest exons to leftmost/rightmost
     if( !left_exons_map.empty() )
       {
       left_exon = (*left_exons_map.begin()).second;
@@ -366,7 +368,7 @@ public:
             ss << "@" << chr << ":" << ini_pose+k+1 << "-" << rightmost+k+1 << "j:"
               << pow(2,asnps_size) << ":" << j;
             read_tmp = ss.str() + "\n" + nt_vec[j] + "\n+\n";
-            for(unsigned i=0; i<read_length; i++) read_tmp += "I";  // Quality, en phred33 casi-max
+            for(unsigned i=0; i<read_length; i++) read_tmp += "I";  // Quality, almost max in phred33
 
             out.file << read_tmp << "\n"; read_counter++;
             }
@@ -382,7 +384,7 @@ public:
         ss << "@" << chr << ":" << ini_pose+k+1 << "-" << rightmost+k+1 << "j:"
           << pow(2,asnps_size) << ":0";
         read_tmp = ss.str() + "\n" + nt_vec[0] + "\n+\n";
-        for(unsigned i=0; i<read_length; i++) read_tmp += "I";  // Quality, en phred33 casi-max
+        for(unsigned i=0; i<read_length; i++) read_tmp += "I";  // Quality, almost max in phred33
 
         out.file << read_tmp << "\n"; read_counter++;
         }
@@ -404,7 +406,7 @@ bool compara_regions( class_gtf& r1, class_gtf& r2 )
 { return r1.ini < r2.ini; }
 
 string funct_to_uppercase( string str )
-{  // Converteix 'acgtn' a MAJUS
+{  // Convert 'acgtn' to UPPER
 stringstream ss;
 for(unsigned k=0; k<str.length(); k++ )
   switch( str[k] )
@@ -421,7 +423,7 @@ return ss.str();
 }
 
 void funct_write_histogram( map<int, int>& snp_density_map, class_fstream& hist_out )
-{  // Escriu l'histogram a la sortida
+{  // Outputs the histogram
 map<int, int>::iterator map_it;
 
 for( map_it = snp_density_map.begin(); map_it != snp_density_map.end(); ++map_it )
@@ -466,7 +468,7 @@ class_fstream snps_in, hg19_in, gtf_in, fastq_out, hist_out, forbidden_out, coun
 if(!debug) cout << "Inici de ARTREAD_MAKER\n";
 else cout << "Inici de ARTREAD_MAKER -- Debug mode --\n";
 
-{  // Obrint totes les entrades i sortides
+{  // Open all inputs and outputs
 cout << "Obrint entrades i sortides" << endl;
 genopath = "/home/ignasi/Imperial/Genomic_Info/";
 
@@ -534,7 +536,7 @@ for(chrn=0; chrn<22; chrn++)
       {
       junct.make_junction( *left_it, *right_it );
       ss.str(""); ss << junct.chr << ":" << junct.leftmost << "-" << junct.rightmost;
-      junct_map[ ss.str() ] = junct;  // Aixi eliminem les juncts repetides
+      junct_map[ ss.str() ] = junct;  // Eliminates repeated junctions
       }
 
     left_it = right_it;
@@ -596,7 +598,7 @@ hg19_in.file.getline(line, 65535); sline = line;
 while( !hg19_in.file.eof() )
   {
   if(line[0] == '>')
-    {  // Canvi de cromosoma
+    {  // Change of chr
     string strline(line);
     chrt = strline.substr(1, strline.find('\0') );
     for(chrn=0; chrn<22; chrn++) if(cromosomes[chrn] == chrt) break;
@@ -604,7 +606,7 @@ while( !hg19_in.file.eof() )
       << read_counter << " reads so far\n";
 
     if(chrn < 22)
-      {  // Inicialitzacions varies
+      {  // Init
       vecsize = snp_supervec[chrn].size();
       gtf_superlist[chrn].sort( compara_regions );
       slow_bed_it = gtf_superlist[chrn].begin();
@@ -617,11 +619,11 @@ while( !hg19_in.file.eof() )
 
   if(chrn<22)  // Since we are ignoring chrX and chrY for this project
     {
-    // Afegeix els nucleotids actuals a tots els newreads de la llista, i escriu els finalitzats
+    // Adds the current nucleotides to all newreads in tghe list, and writes the finalized ones
     if( !newread_list.empty() )
       for( list<class_newread>::iterator it=newread_list.begin(); it!=newread_list.end(); )
         {
-        // Afegeix al newread tots els exons que comencen en aquesta linea
+        // Add to newread all exons that start in this line
         for( fast_bed_it = slow_bed_it;
              ( fast_bed_it != gtf_superlist[chrn].end() ) &&
              ( (*fast_bed_it).ini <= line_count*line_char_count ) &&
@@ -639,7 +641,7 @@ while( !hg19_in.file.eof() )
         }
     while( slow_bed_it != gtf_superlist[chrn].end() &&
            line_count*line_char_count > (*slow_bed_it).fin  )
-      ++slow_bed_it;  // Slow iteration, per evitar saltarnos exons solapants o molt llargs
+      ++slow_bed_it;  // Slow iteration, to avoid skipping overlapping or long exons
 
     // Iniciating, updating and writting junction reads
     while( left_jp_it != junctp_byleft_superlist[chrn].end() &&
@@ -659,7 +661,7 @@ while( !hg19_in.file.eof() )
       for( list<class_junction*>::iterator ajp_it = active_left_junctp_list.begin();
            ajp_it!=active_left_junctp_list.end(); ++ajp_it )
         {  // Iterates the list of active left junctions, and updates or closes them
-        // Afegeix a la left junction tots els exons que comencen en aquesta linea
+        // Add to left junction all exons starting in this line
         for( fast_bed_it2 = slow_bed_it2;
              ( fast_bed_it2 != gtf_superlist[chrn].end() ) &&
              ( (*fast_bed_it2).ini <= line_count*line_char_count ) &&
@@ -678,7 +680,7 @@ while( !hg19_in.file.eof() )
       for( list<class_junction*>::iterator ajp_it = active_right_junctp_list.begin();
            ajp_it!=active_right_junctp_list.end(); ++ajp_it )
         {  // Iterates the list of active right junctions, and updates or closes them
-        // Afegeix a la right junction tots els exons que comencen en aquesta linea
+        // Add to right junction all exons starting in this line
         for( fast_bed_it2 = slow_bed_it2;
              ( fast_bed_it2 != gtf_superlist[chrn].end() ) &&
              ( (*fast_bed_it2).ini <= line_count*line_char_count ) &&
@@ -695,16 +697,16 @@ while( !hg19_in.file.eof() )
         }
     while( slow_bed_it2 != gtf_superlist[chrn].end() &&
            line_count*line_char_count > (*slow_bed_it2).fin  )
-      ++slow_bed_it2;  // Slow iteration, per evitar saltarnos exons solapants o molt llargs
+      ++slow_bed_it2;  // Slow iteration, to avoid skipping overlapping or long exons
 
     // Adds the overlapping SNPs to newreads or junctreads
     while( vecindx < vecsize && line_count*line_char_count > snp.pose-read_length )
-      {  // Inicialitza newreads i actualitza els SNPs dels ja inicialitzats
+      {  // Init newreads and update the SNPs of those already init
       if( !newread_list.empty() &&
           snp.pose - newread_list.back().snp_vec.back().pose <= read_length )
-        newread_list.back().snp_vec.push_back(snp);  // Afegim l'SNP si esta a menys de read_length de l'anterior
+        newread_list.back().snp_vec.push_back(snp);  // Add the SNP if <read_length from previous
       else
-        {  // Si la llista esta buida o el seguent SNP massa lluny, obrim un de nou
+        {  // If list is empty or next SNP is too far, make a new one
         newread.create( snp, line_count, sline );
         newread_list.push_back(newread);
         }
@@ -733,7 +735,7 @@ while( !hg19_in.file.eof() )
       if( !active_right_junctp_list.empty() )
         for( list<class_junction*>::iterator ajp_it = active_right_junctp_list.begin();
              ajp_it!=active_right_junctp_list.end(); ++ajp_it )
-          {  // Iterates the list of active right junctions,, and adds overlapping snps
+          {  // Iterates the list of active right junctions, and adds overlapping snps
           if( (*ajp_it)->rightmost <= snp.pose &&
               (*ajp_it)->rightmost+read_length-2 >= snp.pose )
             (*ajp_it)->snp_vec.push_back( snp );
@@ -758,7 +760,7 @@ while( !hg19_in.file.eof() )
            ajp_it!=active_right_junctp_list.end(); )
         { if( (*ajp_it)->close_right )
             { (*ajp_it)->close_right_nt( sline );
-              (*ajp_it)->write( fastq_out );  // Escriu les junctions quan es tanca el rightmost
+              (*ajp_it)->write( fastq_out );  // Write the junctions when rightmost is closed
               ajp_it = active_right_junctp_list.erase(ajp_it); }
           else ++ajp_it; }
     }
@@ -767,7 +769,7 @@ while( !hg19_in.file.eof() )
   line_count++;
   }
 
-// Escriu l'histogram de la densitat d'SNPs
+// Write the densty of SNPs histogram
 funct_write_histogram( snp_density_map, hist_out );
 
 cout << "\nWe have written a total of " << read_counter << " reads\n";
