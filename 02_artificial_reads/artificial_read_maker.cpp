@@ -1,5 +1,5 @@
 /*
- * ARTIFICIAL_READ_MAKER.CPP
+ * ARTIFICIAL_READ_MAKER
  *
  * Reads a list of SNPs and a fasta genome, and generates
  * all possible reads overlapping the SNPs, a histogram of

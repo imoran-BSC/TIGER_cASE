@@ -1,9 +1,9 @@
 /*
  * FILTER AND UNIFY
  *
- * Reads all dbSNP142_quantification.txt files, and a .vcf genotype file,
+ * Reads all quantification.txt files, and a .vcf genotype file,
  * with the genotypes in columns in any order (automatic matching w given RNAseq sample names),
- * and filters the data and creates a single file with all the imba information.
+ * and filters the data and creates a single file with all the imbalance information.
  *
  * Written by: Ignasi Moran
  */
@@ -195,49 +195,6 @@ public:
 bool funct_sort_bed( const class_bed &b1, const class_bed &b2 )
 { return b1.ini < b2.ini; }
 
-void blob_of_text()
-{  // A blob of text for when the wrong arguments are passed
-cout << "\nThis program reads a list of SNP read count quantification files, "
-  << "and filters and unifies them.\n\n"
-  << "It requires 5 arguments:\n"
-  << " 1) The general path to the folders where the files are located, ending in /. "
-  << "Ie /project/jferrer/imperial/Fastq_Data/\n"
-  << " 2) A comma-separated list of folder names where the dbSNP142_quantification.txt are located. "
-  << "Ie HI12,HI14oxf,HI15,HI17 which will use the following files:\n"
-  << "/project/jferrer/imperial/Fastq_Data/HI12/merged_out/dbSNP142_quantification.txt\n"
-  << "/project/jferrer/imperial/Fastq_Data/HI12/merged_nonclonal/dbSNP142_quantification.txt\n"
-  << "/project/jferrer/imperial/Fastq_Data/HI14oxf/merged_out/dbSNP142_quantification.txt\n"
-  << "/project/jferrer/imperial/Fastq_Data/HI14oxf/merged_nonclonal/dbSNP142_quantification.txt , etc.\n"
-  << "The program assumes that the files are named dbSNP142_quantification.txt and the folders "
-  << "merged_out and merged_nonclonal.\n"
-  << " 3) The path to a file containing the sample genotypes, which must be in .vcf format "
-  << "(phased or unphased), and which must contain the same names in the header as the ones "
-  << "provided in 2).\n"
-  << " 4) The path to a bed3 file containing regions to be excluded from the analysis. "
-  << "The first line of the file will always be skipped, so it should be a header. Ie\n"
-  << "# From  http://genome.ucsc.edu/cgi-bin/hgFileUi?db=hg19&g=wgEncodeMapability\n"
-  << "chr1 564449 570371\nchr1 724136 727043\n"
-  << " 5) The path where the output files will be located, ending in /. "
-  << "Ie /project/jferrer/imperial/Fastq_Data/Results/\n"
-  << "\nFor example, a valid call would be\n"
-  << "$ ./allelic_imba_filter_and_unify /project/jferrer/imperial/Fastq_Data/ HI12,HI14oxf,HI15,HI17 "
-  << "/project/jferrer/imperial/Fastq_Data/Genotypes/Islet_SNP_genotypes.vcf "
-  << "/project/jferrer/imperial/Fastq_Data/Genotypes/ENCODE_blacklisted.bed "
-  << "/project/jferrer/imperial/Fastq_Data/Results/\n"
-  << "\nIf any of the above expectations are not met, the program will most probably "
-  << "simply crash without much explanation or get stuck in an infinite loop.\n"
-  << "\nThere are four output files:\n"
-  << " - Allelic_Imba_compiled.txt , which contains, for all SNPs in all samples, "
-  << "the reference and alternate read counts, the raw allelic ratio and their genotype.\n"
-  << " - Allelic_Imba_compiled_nonclonal.txt , which contains the same information but "
-  << "after removal of clonal reads.\n"
-  << " - Allelic_Imba_trimmed.txt , which contains, for only those SNPs with usable Het values in 3+ samples, "
-  << "the reference and alternate read counts, the corrected allelic ratio and p-value and their genotype.\n"
-  << " - Allelic_Imba_AR_biases.txt , which contains the mean and median allelic ratio biases "
-  << "per sample per dinucleotide.\n\n"
-  << "This software is provided without any warranty whatsoever, so use it at your own risk.\n";
-}
-
 double binom_prob( const int m, const int n, const double p )
 {  // Given M good and N fail with probs p and q, returns the binom probability
 double q = 1-p;
@@ -401,8 +358,8 @@ vector<class_fstream*> snp_invec, nc_invec;
 for(unsigned i=0; i<4; i++) for(unsigned j=0; j<4; j++) if(i != j)
   snp_pairs.push_back( nucleotides[i]+nucleotides[j] );  // Creates the 12 dinucleotide pairs
 
-if(!debug) cout << "Starting ALLELIC IMBA FILTER AND UNIFY" << endl;
-else cout << "Starting ALLELIC IMBA FILTER AND UNIFY -- in DEBUG MODE --" << endl;
+if(!debug) cout << "Starting FILTER AND UNIFY" << endl;
+else cout << "Starting FILTER AND UNIFY -- in DEBUG MODE --" << endl;
 {  // Open all inputs and outputs
 unsigned num_arguments = 5;
 if(!debug)
