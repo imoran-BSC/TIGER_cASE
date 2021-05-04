@@ -465,11 +465,11 @@ map<string, class_junction> junct_map;
 
 class_fstream snps_in, hg19_in, gtf_in, fastq_out, hist_out, forbidden_out, count_out;
 
-if(!debug) cout << "Inici de ARTREAD_MAKER\n";
-else cout << "Inici de ARTREAD_MAKER -- Debug mode --\n";
+if(!debug) cout << "Starting ARTREAD_MAKER\n";
+else cout << "Starting ARTREAD_MAKER -- in DEBUG mode --\n";
 
 {  // Open all inputs and outputs
-cout << "Obrint entrades i sortides" << endl;
+cout << "Opening all inputs and outputs" << endl;
 genopath = "/home/ignasi/Imperial/Genomic_Info/";
 
 if(!debug && argc == 5)
@@ -497,13 +497,13 @@ ss << read_length;
 
 cout << "Results will be located in " << outpath << "\n";
 
-if( !hg19_in.obre   ( ginfopath+"hg19/hg19.fa", "in", "hg19" ) &&
-    !gtf_in.obre    ( ginfopath+"Genes_UCSC_RefSeq_Ensembl_lncRNAsNNak_hg19_noblank.gtf", "in", "gtf_file" ) &&  // With sed 's/ /_/g'
+if( !hg19_in.open   ( ginfopath+"hg19/hg19.fa", "in", "hg19" ) &&
+    !gtf_in.open    ( ginfopath+"Genes_UCSC_RefSeq_Ensembl_lncRNAsNNak_hg19_noblank.gtf", "in", "gtf_file" ) &&  // With sed 's/ /_/g'
 
-    !hist_out.obre  ( outpath +"SNP_density_histogram_"+ss.str()+".txt", "out" ) &&
-    !fastq_out.obre ( outpath +"Artificial_reads_"+ss.str()+".fq", "out" ) &&
-    !forbidden_out.obre( outpath+"Polymorphic_regions_"+ss.str()+".bed", "out" ) &&
-    !count_out.obre  ( outpath+"generated_reads_"+ss.str()+".txt", "out" ) )
+    !hist_out.open  ( outpath +"SNP_density_histogram_"+ss.str()+".txt", "out" ) &&
+    !fastq_out.open ( outpath +"Artificial_reads_"+ss.str()+".fq", "out" ) &&
+    !forbidden_out.open( outpath+"Polymorphic_regions_"+ss.str()+".bed", "out" ) &&
+    !count_out.open  ( outpath+"generated_reads_"+ss.str()+".txt", "out" ) )
   { ; }
 else { return 1; }
 }
@@ -562,7 +562,7 @@ cout << "Loading all SNPs and exons to RAM\n";
 chrt="";
 for( chrn=0; chrn<22; chrn++ )
   {  // Iterate over all MAF files, select binom snps at good MAF
-  if( !snps_in.obre( snppath+"MAF_"+cromosomes[chrn]+".frq", "in", cromosomes[chrn] ) )
+  if( !snps_in.open( snppath+"MAF_"+cromosomes[chrn]+".frq", "in", cromosomes[chrn] ) )
     {
     snps_in.file.getline(line, 65535);  // skip the header
 
@@ -583,7 +583,7 @@ for( chrn=0; chrn<22; chrn++ )
       snp.get_snp( snps_in );
       }
 
-    snps_in.tanca();
+    snps_in.close();
     }
   else return 1;
 
@@ -775,10 +775,10 @@ funct_write_histogram( snp_density_map, hist_out );
 cout << "\nWe have written a total of " << read_counter << " reads\n";
 count_out.file << read_counter << endl;
 
-cout << "\nS'ha acabat, tot correcte!\n";
+cout << "\nAll done!\n";
 
-snps_in.tanca(); hg19_in.tanca(); fastq_out.tanca(); gtf_in.tanca();
-hist_out.tanca(); forbidden_out.tanca(); count_out.tanca();
+snps_in.close(); hg19_in.close(); fastq_out.close(); gtf_in.close();
+hist_out.close(); forbidden_out.close(); count_out.close();
 
 return 0;
 }
