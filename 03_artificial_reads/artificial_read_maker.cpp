@@ -473,7 +473,6 @@ if(!debug) cout << "Starting ARTREAD_MAKER\n";
 else cout << "Starting ARTREAD_MAKER -- in DEBUG mode --\n";
 
 {  // Open all inputs and outputs
-cout << "Opening all inputs and outputs" << endl;
 unsigned num_arguments = 6;
 if(!debug)
   {  // Read input arguments from config file
@@ -495,7 +494,7 @@ if(!debug)
   else { cout << "Error reading the config file, terminating!"; return 1; }
   config_in.close();
   }
-else if(debug && argc == num_arguments)
+else if(debug && argc == (int)num_arguments)
   {  // In debug mode, use command line arguments instead
   genome_fa_file = argv[1];
   gene_annot_gtf_file = argv[2];
@@ -504,7 +503,7 @@ else if(debug && argc == num_arguments)
   read_length  = atoi(argv[5]);
   max_num_snps = atoi(argv[6]);
   }
-else if(debug && argc != num_arguments)
+else if(debug && argc != (int)num_arguments)
   {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
 
 acceptable_snp_ratio = max_num_snps/(double)read_length+0.00001;

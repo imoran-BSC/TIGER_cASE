@@ -369,7 +369,8 @@ int main( int argc, char* argv[] )
 {
 unsigned chrn=0, vecsize;
 char header[65536];
-string path, hilist, genotypath, blackpath, outpath, rnadummy,
+string sample_list, sample_quantification_path, genotype_file,
+  blacklist_file, out_path, rnadummy,
   standard_path, nonclonal_path, chrt="", cromosomes[22] =
   {"chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10",
    "chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19",
@@ -393,7 +394,7 @@ map< string, class_compiledSnp >::iterator comp_it, noncl_it;
 vector< vector< class_count_stats > > AR_bias_supervec;
 
 class_fstream* hi_inp;
-class_fstream forbidden_in, genoty_in,
+class_fstream config_in, forbidden_in, genoty_in,
   trim_out, fullinfo_out, fullnoncl_out, AR_bias_out, benj_out;
 vector<class_fstream*> snp_invec, nc_invec;
 
@@ -403,59 +404,46 @@ for(unsigned i=0; i<4; i++) for(unsigned j=0; j<4; j++) if(i != j)
 if(!debug) cout << "Starting ALLELIC IMBA FILTER AND UNIFY" << endl;
 else cout << "Starting ALLELIC IMBA FILTER AND UNIFY -- in DEBUG MODE --" << endl;
 {  // Open all inputs and outputs
-if( debug )
-  {
-  path = "/home/bscuser/project_data/t2dsystems/case/pipeline_tests/";
-// firstbatch
-//  hilist = "HI12,HI14oxf,HI15,HI16,HI17,HI19,HI20,HI22,HI24,HI25_51,HI26,HI27,HI27oxf,HI28oxf,HI29,HI30,HI31,HI32_51,HI33,HI34,HI37oxf,HI45,HI46,HI57,HI76,HI77,HI81,HI82";
-// secondbatch
-//  hilist = "HI100,HI101,HI102,HI103,HI111,HI112,HI113,HI115,HI116,HI117,HI118,HI121,HI122,HI123,HI124,HI125,HI126,HI127,HI128,HI79,HI84,HI86,HI87,HI88,HI90,HI91,HI95,HI97,HI99";
-// first+thirdbatch
-//  hilist = "HI06,HI07,HI12,HI14,HI14oxf,HI15,HI16,HI17,HI18,HI19,HI20,HI22,HI24,HI25_51,HI26,HI27,HI27oxf,HI28oxf,HI29,HI30,HI31,HI32_51,HI33,HI34,HI37oxf,HI44,HI45,HI46,HI57,HI73,HI76,HI77,HI78,HI81,HI82,HI23,HI35,HI37";
-// second+thirdbatch
-//  hilist = "HI09,HI11,HI13,HI21,HI28,HI79,HI80,HI83,HI84,HI86,HI87,HI88,HI89,HI90,HI91,HI95,HI97,HI99,HI100,HI101,HI102,HI103,HI111,HI112,HI113,HI114,HI115,HI116,HI117,HI118,HI119,HI121,HI122,HI123,HI124,HI125,HI126,HI127,HI128,HI129,HI130,HI131,HI133,HI134,HI135,HI137,HI132,HI138,HI139";
-// 1+2+3
-//  hilist = "HI06,HI07,HI100,HI101,HI102,HI103,HI111,HI112,HI113,HI114,HI115,HI116,HI117,HI118,HI119,HI12,HI123,HI124,HI125,HI126,HI127,HI128,HI129,HI13,HI130,HI131,HI133,HI134,HI135,HI137,HI14,HI14oxf,HI15,HI17,HI18,HI19,HI20,HI21,HI22,HI24,HI25_51,HI26,HI27,HI28,HI28oxf,HI29,HI30,HI31,HI32_51,HI33,HI34,HI37oxf,HI44,HI45,HI46,HI57,HI73,HI76,HI77,HI78,HI79,HI80,HI81,HI82,HI83,HI84,HI86,HI87,HI88,HI89,HI90,HI91,HI95,HI99";
+unsigned num_arguments = 5;
+if(!debug)
+  {  // Read input arguments from config file
+  if( !config_in.open( "config.ini", "in", "config" ) )
+    {
+    string config_argv[num_arguments+1], dummy;
+    cout << "Read from config file:\n";
+    for(unsigned k=1; k<num_arguments+1; k++){
+      config_in.file >> dummy >> config_argv[k];
+      cout << dummy <<"\t"<< config_argv[k] << "\n";}
 
-// ALL samples 1+2+3+4+LG
-//hilist = "HI06,HI07,HI100,HI101,HI102,HI103,HI111,HI112,HI113,HI114,HI115,HI116,HI117,HI118,HI119,HI12,HI123,HI124,HI125,HI126,HI127,HI128,HI129,HI13,HI130,HI131,HI133,HI134,HI135,HI137,HI138,HI139,HI14,HI141,HI142,HI143,HI144,HI145,HI147,HI148,HI149,HI14oxf,HI15,HI151,HI152,HI17,HI18,HI19,HI20,HI21,HI22,HI23,HI24,HI26,HI27,HI28,HI28oxf,HI29,HI30,HI31,HI33,HI34,HI37oxf,HI44,HI45,HI46,HI57,HI73,HI76,HI77,HI78,HI79,HI80,HI81,HI82,HI83,HI84,HI86,HI87,HI88,HI89,HI90,HI91,HI95,HI99,ID10,ID12,ID14,ID15,ID16,ID17,ID18,ID19,ID20,ID6,ID7,ID8,ID9,T2D_3,T2D_4,T2D_5,T2D_6,T2D_7,T2D_8,T2D_9,LG_HI1,LG_HI10,LG_HI100,LG_HI101,LG_HI102,LG_HI103,LG_HI104,LG_HI105,LG_HI106,LG_HI107,LG_HI108,LG_HI109,LG_HI110,LG_HI12,LG_HI13,LG_HI14,LG_HI15,LG_HI16,LG_HI19,LG_HI2,LG_HI20,LG_HI21,LG_HI22,LG_HI23,LG_HI24,LG_HI25,LG_HI26,LG_HI3,LG_HI30,LG_HI31,LG_HI32,LG_HI33,LG_HI34,LG_HI35,LG_HI36,LG_HI37,LG_HI38,LG_HI39,LG_HI4,LG_HI40,LG_HI42,LG_HI43,LG_HI44,LG_HI45,LG_HI46,LG_HI48,LG_HI49,LG_HI5,LG_HI50,LG_HI51,LG_HI52,LG_HI53,LG_HI54,LG_HI55,LG_HI56,LG_HI58,LG_HI59,LG_HI6,LG_HI60,LG_HI62,LG_HI64,LG_HI65,LG_HI66,LG_HI67,LG_HI7,LG_HI70,LG_HI71,LG_HI72,LG_HI73,LG_HI75,LG_HI76,LG_HI77,LG_HI78,LG_HI79,LG_HI8,LG_HI80,LG_HI81,LG_HI82,LG_HI84,LG_HI85,LG_HI86,LG_HI87,LG_HI88,LG_HI89,LG_HI9,LG_HI90,LG_HI91";
-// 1+2+3+4 samples
-//hilist = "HI06,HI07,HI100,HI101,HI102,HI103,HI111,HI112,HI113,HI114,HI115,HI116,HI117,HI118,HI119,HI12,HI123,HI124,HI125,HI126,HI127,HI128,HI129,HI13,HI130,HI131,HI133,HI134,HI135,HI137,HI138,HI139,HI14,HI141,HI142,HI143,HI144,HI145,HI147,HI148,HI149,HI14oxf,HI15,HI151,HI152,HI17,HI18,HI19,HI20,HI21,HI22,HI23,HI24,HI26,HI27,HI28,HI28oxf,HI29,HI30,HI31,HI33,HI34,HI37oxf,HI44,HI45,HI46,HI57,HI73,HI76,HI77,HI78,HI79,HI80,HI81,HI82,HI83,HI84,HI86,HI87,HI88,HI89,HI90,HI91,HI95,HI99,ID10,ID12,ID14,ID15,ID16,ID17,ID18,ID19,ID20,ID6,ID7,ID8,ID9,T2D_3,T2D_4,T2D_5,T2D_6,T2D_7,T2D_8,T2D_9";
-
-// Max debug list
-//hilist = "HI06,HI07,HI100,HI101,HI102,HI103,HI111,HI112,HI113,HI114,HI115,HI116,HI117,HI118,HI119,HI12,HI123,HI124,HI125,HI126,HI127,HI128,HI129,HI13,HI130,HI131,HI133,HI134,HI135,HI137,HI138,HI139";
-
-// LG samples
-//hilits = "LG_HI1,LG_HI10,LG_HI100,LG_HI101,LG_HI102,LG_HI103,LG_HI104,LG_HI105,LG_HI106,LG_HI107,LG_HI108,LG_HI109,LG_HI110,LG_HI12,LG_HI13,LG_HI14,LG_HI15,LG_HI16,LG_HI19,LG_HI2,LG_HI20,LG_HI21,LG_HI22,LG_HI23,LG_HI24,LG_HI25,LG_HI26,LG_HI3,LG_HI30,LG_HI31,LG_HI32,LG_HI33,LG_HI34,LG_HI35,LG_HI36,LG_HI37,LG_HI38,LG_HI39,LG_HI4,LG_HI40,LG_HI42,LG_HI43,LG_HI44,LG_HI45,LG_HI46,LG_HI48,LG_HI49,LG_HI5,LG_HI50,LG_HI51,LG_HI52,LG_HI53,LG_HI54,LG_HI55,LG_HI56,LG_HI58,LG_HI59,LG_HI6,LG_HI60,LG_HI62,LG_HI64,LG_HI65,LG_HI66,LG_HI67,LG_HI7,LG_HI70,LG_HI71,LG_HI72,LG_HI73,LG_HI75,LG_HI76,LG_HI77,LG_HI78,LG_HI79,LG_HI8,LG_HI80,LG_HI81,LG_HI82,LG_HI84,LG_HI85,LG_HI86,LG_HI87,LG_HI88,LG_HI89,LG_HI9,LG_HI90,LG_HI91";
-
-// Minimal hilist
-  hilist = "HI100,HI102,HI103";
-
-  genotypath = "/home/bscuser/project_data/t2dsystems/case/pipeline_tests/minimal_genotypes.vcf";
-  blackpath  = "/home/bscuser/Genomic_Info/ENCODE_BROAD_blacklisted.bed";
-  outpath    = path + "original/";
+    sample_list = config_argv[1];
+    sample_quantification_path = config_argv[2];
+    genotype_file = config_argv[3];
+    blacklist_file = config_argv[4];
+    out_path  = config_argv[5];
+    }
+  else { cout << "Error reading the config file, terminating!"; return 1; }
+  config_in.close();
   }
-else if( !debug && argc != 6 ) { blob_of_text(); cout << "Terminating.\n"; return 1; }
-else if( !debug && argc == 6 )
-  {  // Arguments from command line
-  path       = argv[1];
-  hilist     = argv[2];
-  genotypath = argv[3];
-  blackpath  = argv[4];
-  outpath    = argv[5];
-
-  cout << "Given paramters were:\n";
-  for(unsigned u=1; u<6; u++) cout << u << ") " << argv[u] << "\n";
-  cout << "\n";
+else if(debug && argc == (int)num_arguments )
+  {  // In debug mode, use command line arguments instead
+  sample_list = argv[1];
+  sample_quantification_path = argv[2];
+  genotype_file = argv[3];
+  blacklist_file = argv[4];
+  out_path  = argv[5];
   }
-standard_path  = "merged_out/";  // Non optional at the moment
+else if(debug && argc != (int)num_arguments)
+  {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
+
+// Hard coded paths for the standard and nonclonal quantification files
+standard_path  = "merged_out/";
 nonclonal_path = "merged_nonclonal/";
 
-// Reads the comma separated hilist and puts it in a string vector
+// Reads the comma separated sample_list and puts it in a string vector
 size_t p1=0,p2=0;
-while( ( p2 = hilist.find( ",", p1 ) ) != string::npos )
-  { rnaseq_vec.push_back( hilist.substr( p1, p2-p1 ) ); p1 = p2+1; }
-rnaseq_vec.push_back( hilist.substr( p1, string::npos ) );  // Last element
+while( ( p2 = sample_list.find( ",", p1 ) ) != string::npos )
+  { rnaseq_vec.push_back( sample_list.substr( p1, p2-p1 ) ); p1 = p2+1; }
+rnaseq_vec.push_back( sample_list.substr( p1, string::npos ) );  // Last element
 if( rnaseq_vec.back() == "" ) rnaseq_vec.pop_back();  // Solves strings ending in comma
 
 // *** GLOBAL DEFINITION OF num_rnaseq_samples HERE ***
@@ -472,7 +460,7 @@ for( unsigned u=0; u<num_rnaseq_samples; u++ )
   try { hi_inp = new class_fstream; }  // Using NEW and DELETE so that the file does not go out of scope
   catch (bad_alloc& ba) { cout << "bad_alloc caught: " << ba.what() << "\n"; }
 
-  if( !hi_inp->open( path + rnaseq_vec[u] + "/" + standard_path + "dbSNP142_quantification.txt",
+  if( !hi_inp->open( sample_quantification_path + rnaseq_vec[u] + "/" + standard_path + "quantification.txt",
       "in", rnaseq_vec[u] + "_standard") )
     snp_invec.push_back( hi_inp );
   else return 1;
@@ -481,20 +469,20 @@ for( unsigned u=0; u<num_rnaseq_samples; u++ )
   try { hi_inp = new class_fstream; }  // Using NEW and DELETE so that the file does not go out of scope
   catch (bad_alloc& ba) { cout << "bad_alloc caught: " << ba.what() << "\n"; }
 
-  if( !hi_inp->open( path + rnaseq_vec[u] + "/" + nonclonal_path + "dbSNP142_quantification.txt",
+  if( !hi_inp->open( sample_quantification_path + rnaseq_vec[u] + "/" + nonclonal_path + "quantification.txt",
       "in", rnaseq_vec[u] + "_nonclonal" ) )
     nc_invec.push_back( hi_inp );
   else return 1;
   }
 
-if( !genoty_in.open   ( genotypath, "in", "genotype" ) &&
-    !forbidden_in.open( blackpath,  "in", "blacklist" ) &&
+if( !genoty_in.open   ( genotype_file, "in", "genotype" ) &&
+    !forbidden_in.open( blacklist_file,  "in", "blacklist" ) &&
 
-    !AR_bias_out.open   ( outpath + "Allelic_Imba_AR_biases.txt", "out" ) &&  // Per-sample per-dinucleotide allelic ratio biases, for posterior correction
-    !fullinfo_out.open  ( outpath + "Allelic_Imba_compiled.txt", "out" ) && // All info, pre filtering
-    !fullnoncl_out.open ( outpath + "Allelic_Imba_compiled_nonclonal.txt", "out" ) && // Non-clonal info, pre filtering
-    !trim_out.open      ( outpath + "Allelic_Imba_trimmed.txt", "out" ) &&  // Trimmed results to only 3+ valid heterozgous SNPs
-    !benj_out.open      ( outpath + "Allelic_Imba_Benjamini.txt", "out" ) )  // Per-sample Benjamini Hockberg thresholds
+    !AR_bias_out.open   ( out_path + "Allelic_Imba_AR_biases.txt", "out" ) &&  // Per-sample per-dinucleotide allelic ratio biases, for posterior correction
+    !fullinfo_out.open  ( out_path + "Allelic_Imba_compiled.txt", "out" ) && // All info, pre filtering
+    !fullnoncl_out.open ( out_path + "Allelic_Imba_compiled_nonclonal.txt", "out" ) && // Non-clonal info, pre filtering
+    !trim_out.open      ( out_path + "Allelic_Imba_trimmed.txt", "out" ) &&  // Trimmed results to only 3+ valid heterozgous SNPs
+    !benj_out.open      ( out_path + "Allelic_Imba_Benjamini.txt", "out" ) )  // Per-sample Benjamini Hockberg thresholds
   {
   string strheader;
   size_t p1=0, p2=0;
@@ -601,10 +589,6 @@ for(unsigned sample=0; sample<num_rnaseq_samples; sample++)
 
     sampleSnp.read_and_calculate( *snp_invec[sample] );
     }
-
-//    for(unsigned u=0; u<22; u++)
-//      cout << "chr" << u << " has " << compile_map[u].size() << " elements\n"; cin.get();
-
   }
 
 while( !snp_invec.empty() )
