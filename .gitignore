@@ -1,32 +1,11 @@
-# Prerequisites
-*.d
+# Exclude everything
+/*
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Except .cpp and .h files in directories
+!*/
+!*/*.cpp
+!*/*.h
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# And the github files
+!README.md
+!LICENSE
