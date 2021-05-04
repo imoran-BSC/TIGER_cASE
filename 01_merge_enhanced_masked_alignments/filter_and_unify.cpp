@@ -8,9 +8,10 @@
  * Written by: Ignasi Moran
  */
 
-// #include "../utils/includes.h"
 #include "../utils/class_fstream.h"
 #include "../utils/allelic_imba_common.h"  // Contains the functions to calculate imba, covg criteria
+// ../utils/allelic_imba_common.cpp  also needs to be included in the project or compile command
+// since it contains the implementations of the functions defined in the header.
 
 using namespace std;
 
@@ -37,7 +38,8 @@ public:
 };
 
 class class_sampleSnp
-{  // Conte la info del SNP en aquesta mostra, la quantificacio d'allelic imbalance i el binom pval
+{  // Contains the info of this samples' SNP,
+   // the allelic imbalance quantification and its binomial pval
 public:
   string chr, ref, alt, err, rsname, genoty;
   long int pose, refcount, altcount, errcount;
@@ -104,7 +106,7 @@ public:
 };
 
 class class_compiledSnp
-{  // Conte la info de totes les mostres per aquest SNP
+{  // Contains info about all samples for this SNP
 public:
   unsigned num_good_hets;
   bool good_genotype;
@@ -160,7 +162,7 @@ public:
     }
 
   void writeout( class_fstream& full_out )
-    {  // Writes out (d'oh)
+    {  // Writes out
     string gty;
 
     full_out.file << chr << "\t" << pose << "\t" << rsname << "\t" << ref << "\t" << alt;
@@ -400,7 +402,7 @@ for(unsigned i=0; i<4; i++) for(unsigned j=0; j<4; j++) if(i != j)
 
 if(!debug) cout << "Starting ALLELIC IMBA FILTER AND UNIFY" << endl;
 else cout << "Starting ALLELIC IMBA FILTER AND UNIFY -- in DEBUG MODE --" << endl;
-{  // Obre totes les entrades i sortides
+{  // Open all inputs and outputs
 if( debug )
   {
   path = "/home/bscuser/project_data/t2dsystems/case/pipeline_tests/";
@@ -617,7 +619,7 @@ while( !snp_invec.empty() )
 cout << "Loading the genotypes\n";
 chrt=""; genotype.read_vcf( genoty_in );
 while( !genoty_in.file.eof() )
-  {  // Puja els genotips en un rsname map
+  {  // Genotypes to rsname map
   if( chrt != genotype.chr )
     { chrt = genotype.chr; for(chrn=0; chrn<22; chrn++) if( cromosomes[chrn] == chrt) break;
       cout << "Loading chr" << chrn+1 << "\n"; }
