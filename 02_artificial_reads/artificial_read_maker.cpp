@@ -1,18 +1,17 @@
 /*
- *   ARTREAD_MAKER.CPP
+ *  ARTIFICIAL_READ_MAKER.CPP
  *
- *   Llegeix una llista d'SNPs i un genoma en format fasta, i
- *   genera tots els possibles reads que solapen, un histograma de la densitat d'SNPs
- *   a cada base, i una llista de les regions massa polimorfiques
- *
- *   Last edited on 29/01/2013
+ *  Reads a list of SNPs and a fasta genome, and generates
+ *  all possible reads overlapping the SNPs, a histogram of
+ *  the SNP density in each base, and a list of the discarded
+ *  excessively polymorphic regions
  */
 
-#include "../includes.h"
-#include "../class_fstream.h"
+#include "../99_utils/includes.h"
+#include "../99_utils/class_fstream.h"
 
 using namespace std;
-const bool debug = 1;  // DEBUG FLAG
+const bool debug = 0;  // DEBUG FLAG
 const int line_char_count = 50;  // Char width of .fasta files
 const double min_maf_value = 0.005;  // MAF threshold for exclusion
 double acceptable_snp_ratio;  // Max SNP ratio to generate all the possible reads

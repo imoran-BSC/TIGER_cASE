@@ -5,6 +5,11 @@
 !*/
 !*/*.cpp
 !*/*.h
+*/*
+
+# Remove bin and obj folders
+*/bin/
+*/obj/
 
 # And the github files
 !README.md
