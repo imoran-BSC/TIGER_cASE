@@ -1,11 +1,12 @@
 # Exclude everything
 /*
 
-# Except .cpp and .h files in directories
+# Except .cpp, .h and config.ini files in the directories
 !*/
+*/*
 !*/*.cpp
 !*/*.h
-*/*
+!*/config.ini
 
 # Remove bin and obj folders
 */bin/

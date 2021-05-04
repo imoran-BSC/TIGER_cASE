@@ -17,7 +17,8 @@ const double min_maf_value = 0.005;  // MAF threshold for exclusion
 double acceptable_snp_ratio;  // Max SNP ratio to generate all the possible reads
 unsigned read_length, max_num_snps, read_counter=0;
 
-string funct_to_uppercase( string );  // Needs to be here because some classes use it
+// Pre-declaration since some classes use it
+string funct_to_uppercase( string );
 
 /*
  *   CLASSES
@@ -440,8 +441,8 @@ int main( int argc, char* argv[] )
 {
 unsigned chrn=25, line_count=0, vecsize=0, vecindx=0;
 char line[65535];
-string sys, sline, ginfopath, projpath, fastpath, snppath, genopath,
-  outpath, chrt, cromosomes[24] = {
+string sys, sline, genome_fa_file, gene_annot_gtf_file, snp_path,
+  out_path, chrt, cromosomes[24] = {
   "chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9",
   "chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17",
   "chr18","chr19", "chr20","chr21","chr22","chrX","chrY"};
@@ -463,49 +464,61 @@ list<class_junction*>::iterator left_jp_it, right_jp_it;
 map<int, int> snp_density_map;
 map<string, class_junction> junct_map;
 
-class_fstream snps_in, hg19_in, gtf_in, fastq_out, hist_out, forbidden_out, count_out;
+class_fstream config_in, snps_in, hg19_in, gtf_in,
+  fastq_out, hist_out, forbidden_out, count_out;
 
 if(!debug) cout << "Starting ARTREAD_MAKER\n";
 else cout << "Starting ARTREAD_MAKER -- in DEBUG mode --\n";
 
 {  // Open all inputs and outputs
 cout << "Opening all inputs and outputs" << endl;
-genopath = "/home/ignasi/Imperial/Genomic_Info/";
+unsigned num_arguments = 6;
+if(!debug)
+  {  // Read input arguments from config file
+  if( !config_in.open( "config.ini", "in", "config" ) )
+    {
+    string config_argv[num_arguments+1], dummy;
+    cout << "Read from config file:\n";
+    for(unsigned k=1; k<num_arguments+1; k++){
+      config_in.file >> dummy >> config_argv[k];
+      cout << dummy <<"\t"<< config_argv[k] << "\n";}
 
-if(!debug && argc == 5)
-  {
-  snppath   = argv[1];
-  ginfopath = argv[2];
-  outpath   = argv[3];
-  read_length  = atoi(argv[4]);
-  max_num_snps = atoi(argv[5]);
+    genome_fa_file = config_argv[1];
+    gene_annot_gtf_file = config_argv[2];
+    snp_path = config_argv[3];
+    out_path = config_argv[4];
+    read_length  = stoul(config_argv[5]);
+    max_num_snps = stoul(config_argv[6]);
+    }
+  else { cout << "Error reading the config file, terminating!"; return 1; }
+  config_in.close();
   }
-else if(!debug && argc > 5) {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
-else if(debug)
-  {
-  ginfopath = "/home/ender/Dades/Genomic_Info/";
-  projpath  = "/home/ender/projects/t2dsys/";
-
-  snppath = projpath + "genotypes/maf/";
-  outpath = projpath + "case/artificial/";
-
-  read_length = 100;
-  max_num_snps = 5;
+else if(debug && argc == num_arguments)
+  {  // In debug mode, use command line arguments instead
+  genome_fa_file = argv[1];
+  gene_annot_gtf_file = argv[2];
+  snp_path = argv[3];
+  out_path = argv[4];
+  read_length  = atoi(argv[5]);
+  max_num_snps = atoi(argv[6]);
   }
+else if(debug && argc != num_arguments)
+  {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
+
 acceptable_snp_ratio = max_num_snps/(double)read_length+0.00001;
 ss << read_length;
 
-cout << "Results will be located in " << outpath << "\n";
+cout << "Results will be located in " << out_path << "\n";
 
-if( !hg19_in.open   ( ginfopath+"hg19/hg19.fa", "in", "hg19" ) &&
-    !gtf_in.open    ( ginfopath+"Genes_UCSC_RefSeq_Ensembl_lncRNAsNNak_hg19_noblank.gtf", "in", "gtf_file" ) &&  // With sed 's/ /_/g'
+if( !hg19_in.open   ( genome_fa_file, "in", "hg19" ) &&
+    !gtf_in.open    ( gene_annot_gtf_file, "in", "gtf_file" ) &&  // With sed 's/ /_/g'
 
-    !hist_out.open  ( outpath +"SNP_density_histogram_"+ss.str()+".txt", "out" ) &&
-    !fastq_out.open ( outpath +"Artificial_reads_"+ss.str()+".fq", "out" ) &&
-    !forbidden_out.open( outpath+"Polymorphic_regions_"+ss.str()+".bed", "out" ) &&
-    !count_out.open  ( outpath+"generated_reads_"+ss.str()+".txt", "out" ) )
+    !hist_out.open  ( out_path +"SNP_density_histogram_"+ss.str()+".txt", "out" ) &&
+    !fastq_out.open ( out_path +"Artificial_reads_"+ss.str()+".fq", "out" ) &&
+    !forbidden_out.open( out_path+"Polymorphic_regions_"+ss.str()+".bed", "out" ) &&
+    !count_out.open  ( out_path+"generated_reads_"+ss.str()+".txt", "out" ) )
   { ; }
-else { return 1; }
+else { cout << "Error reading input files, terminating!"; return 1; }
 }
 
 cout << "Extracting all junctions from GTF file and loading to RAM\n";
@@ -562,7 +575,7 @@ cout << "Loading all SNPs and exons to RAM\n";
 chrt="";
 for( chrn=0; chrn<22; chrn++ )
   {  // Iterate over all MAF files, select binom snps at good MAF
-  if( !snps_in.open( snppath+"MAF_"+cromosomes[chrn]+".frq", "in", cromosomes[chrn] ) )
+  if( !snps_in.open( snp_path+cromosomes[chrn]+".frq", "in", cromosomes[chrn] ) )
     {
     snps_in.file.getline(line, 65535);  // skip the header
 
