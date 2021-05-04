@@ -5,6 +5,8 @@
  *  all possible reads overlapping the SNPs, a histogram of
  *  the SNP density in each base, and a list of the discarded
  *  excessively polymorphic regions
+ *
+ *  Written by: Ignasi Moran
  */
 
 #include "../99_utils/class_fstream.h"
