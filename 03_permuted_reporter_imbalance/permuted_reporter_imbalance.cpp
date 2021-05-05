@@ -10,10 +10,18 @@
  *  Writen by Ignasi Moran
  */
 
+#include <string>
+#include <vector>
+#include <list>
+#include <sstream>
+#include <map>
+#include <set>
+
 #include "../utils/class_fstream.h"
 #include "../utils/allelic_imba_common.h"  // Contains the functions to calculate imba, covg criteria
 // ../utils/allelic_imba_common.cpp  also needs to be included in the project or compile command
 // since it contains the implementations of the functions defined in the header.
+
 
 using namespace std;
 

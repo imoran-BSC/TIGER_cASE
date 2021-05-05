@@ -5,7 +5,9 @@
  *
  */
 
-#include "includes.h"
+#include <iostream>
+#include <fstream>
+#include <string>
 
 class class_fstream
 {  // Conte el fstream i la funcio per obrirlo be (amb path = "/home/ignasi/IDIBAPS/Alignments/"+p)

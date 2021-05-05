@@ -9,6 +9,14 @@
  *  Written by Ignasi Moran
  */
 
+#include <string>
+#include <vector>
+#include <list>
+#include <sstream>
+#include <map>
+#include <set>
+#include <math.h>
+
 #include "../utils/class_fstream.h"
 
 

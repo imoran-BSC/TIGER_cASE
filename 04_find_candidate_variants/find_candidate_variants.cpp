@@ -1,26 +1,26 @@
 /*
- * Allelic Imba: CISREG PHASED CREDSET (v2)
+ *  FIND CANDIDATE VARIANTS
  *
- * Reads the Allelic_Imba_trimmed.txt (from filter and unify) and
- * the full genotype of the given chr,
- * and for each reporter SNP, calculates the Zscores from each genotyped
- * SNP (separating Het and Hom samples) within a TAD+leeway.
- * It also calculates the 95% Credible Sets with the Zscores.
+ *  Reads an Allelic_Imba_trimmed.txt file and the full genotype
+ *  of the given chr, and for each reporter SNP, calculates
+ *  the Zscores from each genotyped SNP (separating Het and Hom
+ *  samples) within a TAD+leeway.
  *
- * v2 added: A pure Z-score reporter writeout and unified criteria,
- * and a check to write only candZ >= repZ pairs (otherwise not cand).
- * v2 removed: Benjamini-Hoch FDRs (since this is now separated by chr)
- * and regulatory/GWAS/gene overlaps etc.
- *
- * v3: Removed Cons/Incons flag, Added reporting of refc|altc read counts
- *
- * Last modified: 16/07/20
+ *  Writen by Ignasi Moran
  */
 
-#include "../includes.h"
-#include "../class_fstream.h"
-#include "../allelic_imba_common.h"  // Contains the functions to calculate imba, covg criteria
-#include <unistd.h>
+#include <string>
+#include <vector>
+#include <list>
+#include <sstream>
+#include <map>
+#include <set>
+
+#include "../utils/class_fstream.h"
+#include "../utils/allelic_imba_common.h"  // Contains the functions to calculate imba, covg criteria
+// ../utils/allelic_imba_common.cpp  also needs to be included in the project or compile command
+// since it contains the implementations of the functions defined in the header.
+
 
 using namespace std;
 
@@ -868,17 +868,17 @@ else if( !debug && argc == 6 )
   input_chr  = argv[5];
   }
 
-if( !data_in.obre    ( inpath + "Allelic_Imba_trimmed.txt", "in", "data" ) &&
-    !rnd_zval_in.obre( inpath + "Allelic_Imba_rnd_Zscore.txt", "in", "control_distr" ) &&  // Same as before - was different? Search for rnd script
+if( !data_in.open    ( inpath + "Allelic_Imba_trimmed.txt", "in", "data" ) &&
+    !rnd_zval_in.open( inpath + "Allelic_Imba_rnd_Zscore.txt", "in", "control_distr" ) &&  // Same as before - was different? Search for rnd script
 
-    !r2_in.obre ( genotypath + "plink/r2_" +input_chr+ ".ld", "in", "r2" ) &&
-    !maf_in.obre( genotypath + "plink/" +input_chr+ ".frq", "in", "MAF" ) &&
-    !hwe_in.obre( genotypath + "plink/" +input_chr+ ".hwe", "in", "HWE" ) &&
-    !tads_in.obre ( ginfopath  + "Joan_domains/TAD-like/iTADs_merging_INS_KCN.bed", "in", "TADs" ) &&  // INS/KCN iTAD (artificially?) broken
+    !r2_in.open ( genotypath + "plink/r2_" +input_chr+ ".ld", "in", "r2" ) &&
+    !maf_in.open( genotypath + "plink/" +input_chr+ ".frq", "in", "MAF" ) &&
+    !hwe_in.open( genotypath + "plink/" +input_chr+ ".hwe", "in", "HWE" ) &&
+    !tads_in.open ( ginfopath  + "Joan_domains/TAD-like/iTADs_merging_INS_KCN.bed", "in", "TADs" ) &&  // INS/KCN iTAD (artificially?) broken
 
-    !reporters_out.obre ( outpath + "Allelic_Imba_reporters_"+input_chr+".txt", "out" ) &&
-    !credset_out.obre( outpath + "Allelic_Imba_CSet_"+input_chr+".txt", "out" ) &&
-    !log_out.obre    ( outpath + "Allelic_Imba_CSet_"+input_chr+".log", "out" ) )
+    !reporters_out.open ( outpath + "Allelic_Imba_reporters_"+input_chr+".txt", "out" ) &&
+    !credset_out.open( outpath + "Allelic_Imba_CSet_"+input_chr+".txt", "out" ) &&
+    !log_out.open    ( outpath + "Allelic_Imba_CSet_"+input_chr+".log", "out" ) )
   {
   // Get the number and name of samples from the header of Allelic_Imba_trimmed.txt
   data_in.file.getline(header, 65536); strheader = string(header);
@@ -912,7 +912,7 @@ if( !data_in.obre    ( inpath + "Allelic_Imba_trimmed.txt", "in", "data" ) &&
   }
 else { return 1; }
 
-if( !genoty_in.obre ( genotypath + "t2dsystems_"+input_chr+".vcf", "in", input_chr+"_vcf" ) )
+if( !genoty_in.open ( genotypath + "t2dsystems_"+input_chr+".vcf", "in", input_chr+"_vcf" ) )
   {
   genoty_in.file.getline(header, 65536);
   while( header[0] == '#' && header[1] == '#' )
@@ -925,7 +925,7 @@ if( !genoty_in.obre ( genotypath + "t2dsystems_"+input_chr+".vcf", "in", input_c
         genoty_vec.push_back( strheader.substr( p1, p2-p1 ) ); } p1=p2+1; }
   genoty_vec.push_back( strheader.substr( p1 ) );
 
-  genoty_in.tanca();
+  genoty_in.close();
   }
 else return 1;
 
@@ -1008,7 +1008,7 @@ long fpos;
 for( chrn=0; chrn<22; chrn++ )
   if( cromosomes[chrn] == input_chr )
     {  // Loads all genotypes in the RAM and processes the Zscores and overlaps
-    if( !genoty_in.obre ( genotypath + "t2dsystems_" + cromosomes[chrn] + ".vcf", "in", cromosomes[chrn]+"_vcf" ) )
+    if( !genoty_in.open ( genotypath + "t2dsystems_" + cromosomes[chrn] + ".vcf", "in", cromosomes[chrn]+"_vcf" ) )
       {  // Open the phased genotype file, initiate chromosome dependent stuff
       cout << "Reading genotypes for chr" << chrn+1 << " and searching all possible Z-score pairs" << endl;
       genoty_in.file.getline(header, 65536);
@@ -1064,7 +1064,7 @@ for( chrn=0; chrn<22; chrn++ )
         }
       genotype.read( genoty_in );
       }
-    genoty_in.tanca();
+    genoty_in.close();
 
     if( !phcand_vec.empty() && !tad_snpps.empty() )
       {  // End of chr pass
@@ -1096,9 +1096,9 @@ ss.str(""); ss << "All done!" << endl;
 cout << ss.str(); log_out.file << ss.str();
 
 
-data_in.tanca(); rnd_zval_in.tanca();
-tads_in.tanca(); hwe_in.tanca(); r2_in.tanca(); maf_in.tanca();
-credset_out.tanca(); reporters_out.tanca(); log_out.tanca();
+data_in.close(); rnd_zval_in.close();
+tads_in.close(); hwe_in.close(); r2_in.close(); maf_in.close();
+credset_out.close(); reporters_out.close(); log_out.close();
 
 //cin.get();
 }

@@ -9,6 +9,12 @@
  *  Writen by Ignasi Moran
  */
 
+#include <math.h>
+#include <algorithm>
+#include <vector>
+#include <list>
+#include <map>
+
 using namespace std;
 
 const unsigned min_num_hets = 3,  // Min num of genotyped Hets in order to consider the SNP
