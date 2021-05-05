@@ -5,6 +5,8 @@
  *  of the given chr, and for each reporter SNP, calculates
  *  the Zscores from each genotyped SNP (separating Het and Hom
  *  samples) within a TAD+leeway.
+ *  Requires some PLINK preprocessing of the genotypes to obtain
+ *  LD, MAF and Hardy-Weinberg information, by chr.
  *
  *  Writen by Ignasi Moran
  */
@@ -26,8 +28,6 @@ using namespace std;
 
 bool debug = 0,  // DEBUG FLAG
   no_limits = 0; // Remove ALL pair limits, to fetch otherwise discarded "interesting" pairs
-const string testchr = "chr21";
-const string target = "";  // To debug specific rsids if necessary
 
 const long int tad_leeway = 200000;  // Expand the search this much around TAD borders
 const double min_r2_limit = 0.8,  // Min r2 value for value to be considered
