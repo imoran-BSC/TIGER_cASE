@@ -1,11 +1,11 @@
 /*
- * FILTER AND UNIFY
+ *  FILTER AND UNIFY
  *
- * Reads all quantification.txt files, and a .vcf genotype file,
- * with the genotypes in columns in any order (automatic matching w given RNAseq sample names),
- * and filters the data and creates a single file with all the imbalance information.
+ *  Reads all quantification.txt files, and a .vcf genotype file,
+ *  with the genotypes in columns in any order (automatic matching w given RNAseq sample names),
+ *  and filters the data and creates a single file with all the imbalance information.
  *
- * Written by: Ignasi Moran
+ *  Written by Ignasi Moran
  */
 
 #include "../utils/class_fstream.h"

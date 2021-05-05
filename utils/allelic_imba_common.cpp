@@ -1,14 +1,13 @@
 /*
- *  REGULOME COMMON -BODY-
+ *  ALLELIC IMBALANCE COMMON UTILS -BODY-
  *
- *  Contains the current SNP coverage criteria (ie >10 reads min allele) and a function to test it,
- *  as well as current definition of Allelic Imbalance Likelihood and a function to calculate it,
- *  and a function to calculate and return the binomial pvalue distribution of the selected SNPs
+ *  Contains the implementation of common classes and functions
+ *  used in various allelic imbalance scripts
  *
+ *  Writen by Ignasi Moran
  */
 
 
-#include "includes.h"
 #include "class_fstream.h"
 #include "allelic_imba_common.h"
 
@@ -85,7 +84,7 @@ bool class_snp::operator< ( const class_snp& s ) const
 { return pose < s.pose; }
 
 void class_genotype::read( class_fstream& in )
-{  // Llegeix la info de la entrada i simplifica el genotipatge
+{  // Reads the input and simplifies the genotypes
 string dummy;
 vector<string> nt_vec( num_genoty_samples );
 genoty_vec.clear(); genoty_vec.resize( num_genoty_samples );
@@ -93,7 +92,7 @@ genoty_vec.clear(); genoty_vec.resize( num_genoty_samples );
 in.file >> chr >> pose >> rsname >> ref >> alt >> dummy;
 
 for( unsigned k=0; k<num_genoty_samples; k++ )
-  {  // Converteix el genotipatge de NTs a Ref/Het/Alt/NAN
+  {  // Converts the genotypes to Ref/Het/Alt/NAN
   in.file >> nt_vec[k];
 
   if( nt_vec[k][0] == ref[0] && nt_vec[k][1] == ref[0] ) genoty_vec[k] = "Ref";

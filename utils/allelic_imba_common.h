@@ -1,10 +1,12 @@
 /*
- *  ALLELLIC IMBA COMMON -HEADER-
+ *  ALLELIC IMBALANCE COMMON UTILS -HEADER-
  *
- *  Contains the current SNP coverage criteria (ie >15 reads min allele) and a function to test it,
- *  a function to calculate and return the binomial pvalue distribution of the selected SNPs
- *  as well as functions to calculate the zscore, its pvalue, etc.
+ *  Contains the hard thresholds and parameters used through the study
+ *  of allelic imbalance, as global variables.
+ *  Also contains the declarations of common classes and functions
+ *  used in various allelic imbalance scripts
  *
+ *  Writen by Ignasi Moran
  */
 
 using namespace std;
@@ -17,7 +19,7 @@ const double err_read_pctg = 0.01,  // 1% as the max threshold for error reads a
   min_pval = 1e-15,  // Minimum possible (non binom) pval, binom gets blunted to this for Fisher's
   imba_het_threshold = 0.05,  // Min/max allowed AR values for coverage threshold
   binom_pval_threshold = 0.001,  // Minimum threshold to consider binom pvals as significant
-  qnorm_vals[] = {  // Tabulates the values of qnorm( 1 - pval ) for pval = 10^-(0:1530/100)
+  qnorm_vals[] = {  // Tabulates the values of qnorm( 1 - pval ) for pval = 10^-(0:1530/100) - extracted from R
     -8.014015949,-1.999765810,-1.695319498,-1.500475024,-1.353242032,
     -1.233208128,-1.130957880,-1.041326755,-0.961158543,-0.888375188,
     -0.821531603,-0.759579851,-0.701734345,-0.647390076,-0.596070576,
@@ -363,7 +365,7 @@ public:
 };
 
 class class_snp
-{  // Contains all the SNP data  -- Actually only used in the 2nd(/3rd) part??
+{  // Contains all the SNP data
 public:
   unsigned num_hets, num_covg_hets, num_ref_bias, num_alt_bias;
   long int pose, gw_ini, gw_fin;
