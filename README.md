@@ -63,6 +63,25 @@ in the downstream analyses as the null distribution, ie the expected
 distribution of allelic imbalance Z-scores that would be obtained if 
 all allelic biases were the product of biological stochasticity.
 
+## 04 Find Candidate Variants
+This script eads an Allelic_Imba_trimmed.txt file outputed in step 02,
+the control Z-score distribution outputed in step 03,
+and the full genotype of the given chr. It also reequires PLINK 
+preprocessing of the sample genotypes, to obtain
+LD, MAF and Hardy-Weinberg information, split by chr.
 
+For each reporter SNP, this script 
+calculates the reporter Z-score (outputted in Allelic_Imba_reporters_chrN.txt).
+A larger deviation from a zero value indicates a stronger allelic bias in
+the expression of the reporter, with positive values indicating a preference
+for the reference allele, and negative for the alternate.
+
+Additionally, this script also calculates the Z-scores for each candidate 
+variant around each reporter, within a TAD+leeway (outputted in Allelic_Imba_CSet_chrN.txt). 
+It separates the samples in two populations, those Het and those Hom for 
+the candidate, as described in the Online Methods section. 
+If the Het Z-score is stronger than the reporter,
+and the Hom Z-score is non significant, the variant in question is 
+identified as a putative candidate for the cis-regulatory effect 
 
 
