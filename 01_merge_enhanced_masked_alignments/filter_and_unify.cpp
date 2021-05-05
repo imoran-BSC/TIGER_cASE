@@ -381,7 +381,7 @@ if(!debug)
   else { cout << "Error reading the config file, terminating!"; return 1; }
   config_in.close();
   }
-else if(debug && argc == (int)num_arguments )
+else if(debug && argc == (int)num_arguments+1)
   {  // In debug mode, use command line arguments instead
   sample_list = argv[1];
   sample_quantification_path = argv[2];
@@ -389,7 +389,7 @@ else if(debug && argc == (int)num_arguments )
   blacklist_file = argv[4];
   out_path  = argv[5];
   }
-else if(debug && argc != (int)num_arguments)
+else if(debug && argc != (int)num_arguments+1)
   {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
 
 // Hard coded paths for the standard and nonclonal quantification files
@@ -435,11 +435,11 @@ for( unsigned u=0; u<num_rnaseq_samples; u++ )
 if( !genoty_in.open   ( genotype_file, "in", "genotype" ) &&
     !forbidden_in.open( blacklist_file,  "in", "blacklist" ) &&
 
-    !AR_bias_out.open   ( out_path + "Allelic_Imba_AR_biases.txt", "out" ) &&  // Per-sample per-dinucleotide allelic ratio biases, for posterior correction
-    !fullinfo_out.open  ( out_path + "Allelic_Imba_compiled.txt", "out" ) && // All info, pre filtering
-    !fullnoncl_out.open ( out_path + "Allelic_Imba_compiled_nonclonal.txt", "out" ) && // Non-clonal info, pre filtering
-    !trim_out.open      ( out_path + "Allelic_Imba_trimmed.txt", "out" ) &&  // Trimmed results to only 3+ valid heterozgous SNPs
-    !benj_out.open      ( out_path + "Allelic_Imba_Benjamini.txt", "out" ) )  // Per-sample Benjamini Hockberg thresholds
+    !AR_bias_out.open  ( out_path + "Allelic_Imba_AR_biases.txt", "out" ) &&  // Per-sample per-dinucleotide allelic ratio biases, for posterior correction
+    !fullinfo_out.open ( out_path + "Allelic_Imba_compiled.txt", "out" ) && // All info, pre filtering
+    !fullnoncl_out.open( out_path + "Allelic_Imba_compiled_nonclonal.txt", "out" ) && // Non-clonal info, pre filtering
+    !trim_out.open     ( out_path + "Allelic_Imba_trimmed.txt", "out" ) &&  // Trimmed results to only 3+ valid heterozgous SNPs
+    !benj_out.open     ( out_path + "Allelic_Imba_Benjamini.txt", "out" ) )  // Per-sample Benjamini Hockberg thresholds
   {
   string strheader;
   size_t p1=0, p2=0;

@@ -1,28 +1,28 @@
 /*
- * Regulome_Randomizer.cpp
+ *  PERMUTED REPORTER IMBALANCE
  *
- * Reads the Compiled SNP info file, makes a 1000 randomizations, and calculates consistently imba SNPs
- * in order to get a sense of the FDR of the real data.
+ *  This script reads an Allelic_Imba_trimmed.txt file,
+ *  calculates the empiric Zscore distribution, then randomises
+ *  the Het read counts 1000 times within 5 bins (one for SNPs with
+ *  a median coverage of zero, and four more containing 20% of the
+ *  reminding data) and creates an expected null Zscore distribution.
  *
- * TO DO: Instead of making a number of median expr level bins and randomizing within the bins,
- * find a smooth solution instead
- *
- * Last modified: 21/03/14
+ *  Writen by Ignasi Moran
  */
 
-
-#include "../includes.h"
-#include "../class_fstream.h"
-#include "../allelic_imba_common.h"  // Contains the functions to calculate imba, covg criteria
+#include "../utils/class_fstream.h"
+#include "../utils/allelic_imba_common.h"  // Contains the functions to calculate imba, covg criteria
+// ../utils/allelic_imba_common.cpp  also needs to be included in the project or compile command
+// since it contains the implementations of the functions defined in the header.
 
 using namespace std;
 
-
 bool debug = 0;  // DEBUG FLAG
-const unsigned num_permutations = 1000,  // Number of permutations here!!
-  num_median_bins = 1+4,  // 2 for >0 and <0 bins, >2 for equally spaced positive bins
+const unsigned num_median_bins = 1+4,  // 2 for >0 and <0 bins, >2 for equally spaced positive bins
   num_quartiles = 5000;  // Number of points for the qqplot
 const double fdr_levels[3] = { 2.5, 5, 10 };  // FDR values for which we will calculate and report the AIL value
+
+unsigned num_permutations;  // Init in the config file
 
 vector<double> median_bins;
 
@@ -37,30 +37,6 @@ vector<double> median_bins;
 /*
  *   FUNCIONS SECUNDARIES
  */
-
-void blob_of_text()
-{  // A blob of text for when the wrong arguments are passed
-cout << "\nThis program reads an Allelic_Imba_trimmed.txt file, "
-  << "calculates the empiric Zscore distribution, then randomises it "
-  << "1000 times within 5 bins (one for SNPs with median coverage of zero, and four "
-  << "containing 20% of the reminding data) and creates an expected null Zscore distribution.\n\n"
-  << "It requires 2 arguments:\n"
-  << " 1) The general path to where the Allelic_Imba_trimmed.txt "
-  << "(output from allelic_imba_filter_and_unify)is located, ending in / . "
-  << "Ie /project/jferrer/imperial/SNP_Analysis/\n"
-  << " 2) The general path to where the output files will be located, ending in / ."
-  << "Ie /project/jferrer/imperial/Fastq_Data/Results/\n"
-  << "\nIf any of the above expectations are not met, the program will most probably "
-  << "simply crash without much explanation or get stuck in an infinite loop.\n"
-  << "\nThere is three output files:\n"
-  << " - Allelic_Imba_rnd_Zscore.txt , which contains the distribution of empiric (1st column) "
-  << "and randomised (2nd column) Z-scores\n"
-  << " - Allelic_Imba_QQplot_Zscore.txt , which contains the information for a QQ plot comparing "
-  << "the empirical and randomised 5000 quartiles"
-  << " - Allelic_Imba_Cumul_median_covg.txt , which contains the cumulative median SNP coverage "
-  << "which is used to make the bins whithin which the data is randomised.\n\n"
-  << "This software is provided without any warranty whatsoever, so use it at your own risk.\n";
-}
 
 void funct_cumul_and_normalize( map<double, pair<int,double> >& data_map )
 {  // Calculates the normalized cumulative map of a histogram
@@ -283,7 +259,7 @@ int main( int argc, char* argv[] )
 unsigned chrn=0, num_covg_hets=0;
 char header[65536];
 double zvalue;
-string inpath, outpath, strheader, chrt="", sys, cromosomes[22] =
+string trimmed_file, out_path, strheader, chrt="", sys, cromosomes[22] =
   {"chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10",
    "chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19",
    "chr20","chr21","chr22"};  // ChrX and Y are out
@@ -299,22 +275,45 @@ vector< list<class_snp> > snp_vec(22);
 list<class_snp>::iterator snp_it;
 vector< vector<class_sampledata> > shuffle_vecs(num_median_bins);  // One shuffle vec per median bin
 
-class_fstream data_in, median_out, rnd_zval_out, qqplot_zval_out;
+class_fstream config_in, data_in, median_out, rnd_zval_out, qqplot_zval_out;
 
 srand( unsigned( time( NULL ) ) );  // Random seed initialization
 
 if(!debug) cout << endl << "Starting ALLELIC IMBA RANDOMIZER\n" << endl;
 else cout << endl << "Starting ALLELIC IMBA RANDOMIZER -- in DEBUG MODE --\n" << endl;
-{  // Obre totes les entrades i sortides
-if(debug) { inpath = "/home/ignasi/scratch/LeifGroop/"; outpath = inpath; }
-else if( !debug && argc != 3 ) { blob_of_text(); return 0; }
-else if( !debug && argc == 3 ) { inpath = argv[1]; outpath = argv[2]; }
+{  // Open all inputs and outputs
+unsigned num_arguments = 3;
+if(!debug)
+  {  // Read input arguments from config file
+  if( !config_in.open( "config.ini", "in", "config" ) )
+    {
+    string config_argv[num_arguments+1], dummy;
+    cout << "Read from config file:\n";
+    for(unsigned k=1; k<num_arguments+1; k++){
+      config_in.file >> dummy >> config_argv[k];
+      cout << dummy <<"\t"<< config_argv[k] << "\n";}
 
-if( !data_in.obre( inpath + "Allelic_Imba_trimmed.txt", "in", "data" ) &&
+    trimmed_file = config_argv[1];
+    num_permutations = atoi( config_argv[2].c_str() );
+    out_path = config_argv[3];
+    }
+  else { cout << "Error reading the config file, terminating!"; return 1; }
+  config_in.close();
+  }
+else if(debug && argc == (int)num_arguments+1)
+  {  // In debug mode, use command line arguments instead
+    trimmed_file = argv[1];
+    num_permutations = atoi( argv[2] );
+    out_path = argv[3];
+  }
+else if(debug && argc != (int)num_arguments+1)
+  {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
 
-    !rnd_zval_out.obre   ( outpath + "Allelic_Imba_rnd_Zscore.txt", "out" ) &&
-    !qqplot_zval_out.obre   ( outpath + "Allelic_Imba_QQplot_Zscore.txt", "out" ) &&
-    !median_out.obre( outpath + "Allelic_Imba_Cumul_median_covg.txt", "out" ) )
+if( !data_in.open( trimmed_file, "in", "data" ) &&
+
+    !rnd_zval_out.open   ( out_path + "Allelic_Imba_rnd_Zscore.txt", "out" ) &&
+    !qqplot_zval_out.open( out_path + "Allelic_Imba_QQplot_Zscore.txt", "out" ) &&
+    !median_out.open     ( out_path + "Allelic_Imba_Cumul_median_covg.txt", "out" ) )
   {
   // Get the number and name of samples from the header of Allelic_Imba_trimmed.txt
   size_t p1=0, p2=0, p3=0;
@@ -429,8 +428,8 @@ funct_calc_qqplot_and_writeout( rnd_zval_vec, obs_zval_vec, rnd_zval_out, qqplot
 qqplot_zval_out.file.flush(); median_out.file.flush(); rnd_zval_out.file.flush();
 cout << "\nDone." << endl;
 
-data_in.tanca(); qqplot_zval_out.tanca();
-median_out.tanca(); rnd_zval_out.tanca();
+data_in.close(); qqplot_zval_out.close();
+median_out.close(); rnd_zval_out.close();
 }
 
 

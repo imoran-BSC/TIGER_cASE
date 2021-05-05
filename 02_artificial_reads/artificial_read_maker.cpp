@@ -488,13 +488,13 @@ if(!debug)
     gene_annot_gtf_file = config_argv[2];
     snp_path = config_argv[3];
     out_path = config_argv[4];
-    read_length  = stoul(config_argv[5]);
-    max_num_snps = stoul(config_argv[6]);
+    read_length  = atoi( config_argv[5].c_str() );
+    max_num_snps = atoi( config_argv[6].c_str() );
     }
   else { cout << "Error reading the config file, terminating!"; return 1; }
   config_in.close();
   }
-else if(debug && argc == (int)num_arguments)
+else if(debug && argc == (int)num_arguments+1)
   {  // In debug mode, use command line arguments instead
   genome_fa_file = argv[1];
   gene_annot_gtf_file = argv[2];
@@ -503,7 +503,7 @@ else if(debug && argc == (int)num_arguments)
   read_length  = atoi(argv[5]);
   max_num_snps = atoi(argv[6]);
   }
-else if(debug && argc != (int)num_arguments)
+else if(debug && argc != (int)num_arguments+1)
   {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
 
 acceptable_snp_ratio = max_num_snps/(double)read_length+0.00001;
@@ -511,13 +511,13 @@ ss << read_length;
 
 cout << "Results will be located in " << out_path << "\n";
 
-if( !hg19_in.open   ( genome_fa_file, "in", "hg19" ) &&
-    !gtf_in.open    ( gene_annot_gtf_file, "in", "gtf_file" ) &&  // With sed 's/ /_/g'
+if( !hg19_in.open( genome_fa_file, "in", "hg19" ) &&
+    !gtf_in.open ( gene_annot_gtf_file, "in", "gtf_file" ) &&  // With sed 's/ /_/g'
 
-    !hist_out.open  ( out_path +"SNP_density_histogram_"+ss.str()+".txt", "out" ) &&
-    !fastq_out.open ( out_path +"Artificial_reads_"+ss.str()+".fq", "out" ) &&
-    !forbidden_out.open( out_path+"Polymorphic_regions_"+ss.str()+".bed", "out" ) &&
-    !count_out.open  ( out_path+"generated_reads_"+ss.str()+".txt", "out" ) )
+    !hist_out.open     ( out_path + "SNP_density_histogram_"+ss.str()+".txt", "out" ) &&
+    !fastq_out.open    ( out_path + "Artificial_reads_"+ss.str()+".fq", "out" ) &&
+    !forbidden_out.open( out_path + "Polymorphic_regions_"+ss.str()+".bed", "out" ) &&
+    !count_out.open    ( out_path + "generated_reads_"+ss.str()+".txt", "out" ) )
   { ; }
 else { cout << "Error reading input files, terminating!"; return 1; }
 }
