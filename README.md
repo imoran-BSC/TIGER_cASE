@@ -14,61 +14,66 @@ Each script can be compiled to a binary executable file by using
 
 ```g++ -Wall -o step01_binary step_01.cpp ../utils/allelic_imba_common.cpp```
 
-Each binary expects a config.ini file residing in the same directory,
-containing the necessary arguments for the executions. Example config.ini
+Each binary expects a ```config.ini``` file residing in the same directory,
+containing the necessary arguments for the executions. Example config
 files are already included in this repository, with a brief description of 
 the type of the expected arguments, and of their particular formatting.
 Prior to executing the binary, please _make sure that all the necessary 
-arguments in config.ini are correct_ and that they refer to the expected 
+arguments in ```config.ini``` are correct_ and that they refer to the expected 
 data files. Otherwise, the execution will terminate unexpectedly.
 
-The code is provided as is, for informational purposes and without any 
+The code is provided as is, for informational purposes, and without any 
 warranties. It has only been tested in a limited number of environments.
 
 ## 01 Artificial Reads
-This script reads a list of SNPs and a fasta genome, and generates
-all possible reads overlapping the SNPs, containing the same number of 
-reads containing the reference and alternate alleles. It also outputs
-a histogram of the SNP density in each base, and a list of regions
+This script reads a list of SNPs, a gtf gene annotation and a fasta genome, 
+and generates all possible reads overlapping the given SNPs, including spliced
+reads across splice junctions. The resulting set of artificial reads includes 
+the same number of  reads containing the reference and alternate alleles 
+for all SNPs. It also outputs
+a histogram of the SNP density in each read position, and a list of regions
 discarded due to excessive density of polymorphisms.
 
-A set of artificial RNAseq reads generated with this code was used to 
+A set of artificial RNA-seq reads generated with this code was used to 
 test for alignment allelic biases in all possible reporter variants. Given 
 that the same number of reads are generated containing the reference and 
 alternate alleles, any deviation form the expected 50% allelic ratio can be
-attributed to problems with the alignment strategy.
+attributed to problems with the alignment strategy, and discarded
+from downstream analyses.
 
 ## 02 Filter and Unify Alignments
-This script reads, for all samples listed as input argument, all allelic 
-imbalance quantification.txt files obtained as explained in the Online Methods
-secton of the paper. It also requires a .vcf genotype file, with the genotypes 
-of all samples of interest in columns in any order. This script then
+Given a list of sample names as input, this script reads all allelic 
+imbalance quantification.txt files, obtained using ``samtools mpileup``` and 
+```ComputePileupFreqs.pl```, as explained in the Online Methods section. 
+It also requires a .vcf genotype file, with the genotypes 
+of all samples of interest in columns, in any order. This script then
 filters all input data and creates a unified output file with all the 
 allelic imbalance information, along with other files on mean allelic biases,
 or Benjamini Hochberg significance thresholds.
 
-The resulting outputs are intermediary files necessary for the downstream 
+The resulting outputs are intermediary files necessary for downstream 
 analyses.
 
 ## 03 Permuted Reporter Imbalance
-This script reads an Allelic_Imba_trimmed.txt file, outputed in step 02,
-calculates the empiric Zscore distribution, then randomises
-the Het read counts N times, and creates an expected null Zscore 
+This script reads an Allelic_Imba_trimmed.txt file, outtputed in step 02,
+calculates the empiric Z-score distribution, then randomises
+the Het variant read counts N times, and creates an expected null Z-score 
 distribution. The counts are randomised within 5 gene expression bins, 
 one for SNPs with a median read coverage of zero, and four more in increasing 
-quartiles for the remainder of the data.
+quartiles for the remainder of the data, to control for possible biases
+induced by gene expression level or read coverage depth.
 
-The Z-score distribution obtained from these distributions is used 
-in the downstream analyses as the null distribution, ie the expected
+The Z-score distribution obtained from this script is used 
+in the downstream analyses as the null distribution, _i.e._ the expected
 distribution of allelic imbalance Z-scores that would be obtained if 
 all allelic biases were the product of biological stochasticity.
 
 ## 04 Find Candidate Variants
-This script eads an Allelic_Imba_trimmed.txt file outputed in step 02,
-the control Z-score distribution outputed in step 03,
+This script eads an Allelic_Imba_trimmed.txt file outputted in step 02,
+the control Z-score distribution outputted in step 03,
 and the full genotype of the given chr. It also reequires PLINK 
-preprocessing of the sample genotypes, to obtain
-LD, MAF and Hardy-Weinberg information, split by chr.
+preprocessing of the sample genotypes, to obtain linkage disequilibrium, 
+allele frequency and Hardy-Weinberg information, split by chromosome.
 
 For each reporter SNP, this script 
 calculates the reporter Z-score (outputted in Allelic_Imba_reporters_chrN.txt).
@@ -82,6 +87,6 @@ It separates the samples in two populations, those Het and those Hom for
 the candidate, as described in the Online Methods section. 
 If the Het Z-score is stronger than the reporter,
 and the Hom Z-score is non significant, the variant in question is 
-identified as a putative candidate for the cis-regulatory effect 
+identified as a putative candidate for the cis-regulatory effect.
 
 

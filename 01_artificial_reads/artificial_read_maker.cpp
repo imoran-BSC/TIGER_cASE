@@ -1,12 +1,14 @@
 /*
  *  ARTIFICIAL_READ_MAKER
  *
- *  This script reads a list of SNPs and a fasta genome, and generates
- *  all possible reads overlapping the SNPs, containing the same number of
- *  reads containing the reference and alternate alleles. It also outputs
- *  a histogram of the SNP density in each base, and a list of regions
- *  discarded due to excessive density of polymorphisms.
- *
+ *  This script reads a list of SNPs, a gtf gene annotation and a
+ *  fasta genome, and generates all possible reads overlapping the
+ *  given SNPs, including spliced reads across splice junctions. The
+ *  resulting set of artificial reads includes the same number of
+ *  reads containing the reference and alternate alleles for all SNPs.
+ *  It also outputs a histogram of the SNP density in each read
+ *  position, and a list of regions discarded due to excessive
+ *  density of polymorphisms.
  *  Written by Ignasi Moran
  */
 
