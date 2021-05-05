@@ -43,7 +43,7 @@ from downstream analyses.
 
 ## 02 Filter and Unify Alignments
 Given a list of sample names as input, this script reads all allelic 
-imbalance quantification.txt files, obtained using ``samtools mpileup``` and 
+imbalance quantification.txt files, obtained using ```samtools mpileup``` and 
 ```ComputePileupFreqs.pl```, as explained in the Online Methods section. 
 It also requires a .vcf genotype file, with the genotypes 
 of all samples of interest in columns, in any order. This script then
@@ -69,7 +69,7 @@ distribution of allelic imbalance Z-scores that would be obtained if
 all allelic biases were the product of biological stochasticity.
 
 ## 04 Find Candidate Variants
-This script eads an Allelic_Imba_trimmed.txt file outputted in step 02,
+This script reads an Allelic_Imba_trimmed.txt file outputted in step 02,
 the control Z-score distribution outputted in step 03,
 and the full genotype of the given chr. It also reequires PLINK 
 preprocessing of the sample genotypes, to obtain linkage disequilibrium, 
@@ -87,6 +87,6 @@ It separates the samples in two populations, those Het and those Hom for
 the candidate, as described in the Online Methods section. 
 If the Het Z-score is stronger than the reporter,
 and the Hom Z-score is non significant, the variant in question is 
-identified as a putative candidate for the cis-regulatory effect.
+identified as a putative candidate for the _cis_-regulatory effect.
 
 
