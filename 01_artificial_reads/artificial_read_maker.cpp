@@ -1,10 +1,11 @@
 /*
  *  ARTIFICIAL_READ_MAKER
  *
- *  Reads a list of SNPs and a fasta genome, and generates
- *  all possible reads overlapping the SNPs, a histogram of
- *  the SNP density in each base, and a list of the discarded
- *  excessively polymorphic regions
+ *  This script reads a list of SNPs and a fasta genome, and generates
+ *  all possible reads overlapping the SNPs, containing the same number of
+ *  reads containing the reference and alternate alleles. It also outputs
+ *  a histogram of the SNP density in each base, and a list of regions
+ *  discarded due to excessive density of polymorphisms.
  *
  *  Written by Ignasi Moran
  */
