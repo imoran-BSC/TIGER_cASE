@@ -27,12 +27,9 @@ using namespace std;
 bool debug = 0,  // DEBUG FLAG
   no_limits = 0; // Remove ALL pair limits, to fetch otherwise discarded "interesting" pairs
 const string testchr = "chr21";
-
-const string target = "";
-// To debug specific rsids if necessary
+const string target = "";  // To debug specific rsids if necessary
 
 const long int tad_leeway = 200000;  // Expand the search this much around TAD borders
-// MIGHT BE WORTH TO EXPAND 1 FULL TAD INSTEAD
 const double min_r2_limit = 0.8,  // Min r2 value for value to be considered
   min_maf_value = 0.005,
   hom_pval_limit = 0.05,  // Max allowed p-value for homozygous samples
@@ -88,7 +85,7 @@ public:
     gwas_ld_rsnames(""), gwas_ld_r2vals(""), gwas_ld_type(""), eqtl_study("") {};
 
   void read( class_fstream& in )
-    {  // Llegeix la info de la entrada i simplifica el genotipatge
+    {  // Reads input and simplifies the genotype
     string dummy="", gty="", prob="";
     vector<string> nt_vec( num_genoty_samples );
     genoty_vec.clear(); genoty_vec.resize( num_genoty_samples );
@@ -97,7 +94,7 @@ public:
     chr = "chr"+chr;
 
     for( unsigned k=0; k<num_genoty_samples; k++ )
-      {  // Converteix el genotipatge de NTs a Ref/Het/Alt/NAN
+      {  // Converts the genotype to Ref/Het/Alt/NAN
       in.file >> nt_vec[k];
       gty=nt_vec[k].substr( 0, nt_vec[k].find(":") );
       prob=nt_vec[k].substr( nt_vec[k].find(":")+1 );
@@ -419,36 +416,6 @@ else return -100;
 /*
  *   SECONDARY FUNCTIONS
  */
-
-void blob_of_text()
-{  // A blob of text for when the wrong arguments are passed
-cout << "\nThis program reads an Allelic_Imba_trimmed.txt file "
-  << "calculates the z-scores of all its SNPs, and reports their significance.\n\n"
-  << "It requires 3 arguments:\n"
-  << " 1) The general path to where the Allelic_Imba_trimmed.txt "
-  << "(output from allelic_imba_filter_and_unify) and "
-  << "Allelic_Imba_rnd_Zscore.txt files are located, ending in /. "
-  << "Ie /project/jferrer/imperial/SNP_Analysis/\n"
-  << " 2) The general path to where the gene (Genes_UCSC_RefSeq_Ensembl_lncRNAs_hg19.bed) "
-  << "and exon (Exons_UCSC_RefSeq_Ensembl_lncRNAs_hg19.bed) annotation files are located"
-  << "plus the geneSymbol conversion files (Convert_UCSC2GSymb_hg19.txt, Convert_RefSeq2GSymb_hg19.txt)"
-  << "and Convert_Ensembl2GSymb_hg19.txt), plus the Regulome and GWAS folders, "
-  << "which should contain the regulome files (C{1..5}_sites.bed and clustered_C3_sites.bed) "
-  << "and the gwas files (GWAS_FG.bed, GWAS_T2G.bed). Ie /project/jferrer/imperial/Genomic_Info/\n"
-  << " 3) The path where the output files will be located, ending in /. "
-  << "Ie /project/jferrer/imperial/Fastq_Data/Results/\n"
-  << "\nFor example, a valid call would be\n"
-  << "$ ./allelic_imba_zscore /project/jferrer/imperial/SNP_Analysis/ "
-  << "/project/jferrer/imperial/Genomic_Info/ "
-  << "/project/jferrer/imperial/Fastq_Data/Results/\n"
-  << "\nIf any of the above expectations are not met, the program will most probably "
-  << "simply crash without much explanation or get stuck in an infinite loop.\n"
-  << "\nThere is one output file:\n"
-  << " - Allelic_Imba_Zscores.txt , which contains, for all SNPs in the input file, "
-  << "the z-score, its p-value and Benjamini-Hochberg significance, plus information on which samples "
-  << "was the SNP imbalanced, which genes intersected, which GWAS regions, etc.\n\n"
-  << "This software is provided without any warranty whatsoever, so use it at your own risk.\n";
-}
 
 double funct_calc_pval( double val, vector< pair<double,double> >& distr, int tails )
 {  // Given the val and the null distribution (and 1 or 2 tails), return the pvalue
@@ -798,7 +765,6 @@ for( pair_it=pair_vec.begin(); pair_it!=pair_vec.end(); ++pair_it )
     (*pair_it).writeout( out );  // Write standard candidate-rep pairs
     write_counter++;
     }
-// Problem of this is that we won't write many control pairs?
 
 ss.str("");
 ss << "Writen " << write_counter << " causal-reporter pairs" << endl;
@@ -814,9 +780,9 @@ int main( int argc, char* argv[] )
 {
 unsigned chrn=0, nonhw_count=0;
 char header[65536];
-string inpath="", ginfopath="", genotypath="",
-  outpath="", hi_name="", dummy="", rnadummy="",
-  chrt="", strheader="", input_chr="";
+string trimmed_file, control_distr_file, genotype_plink_path,
+  merged_tads_file, genotype_vcf_path, input_chr, out_path,
+  hi_name, dummy, rnadummy, chrt, strheader;
 stringstream ss;
 
 class_snp snp;
@@ -838,47 +804,63 @@ set<string> nonhw_rsid_set;
 vector<class_genotype_phased> phcand_vec, tphcand_vec;
 vector<class_snp_pair> rep_vec, pair_vec;
 
-class_fstream data_in, rnd_zval_in, zscore_in, genoty_in,
+class_fstream config_in, data_in, rnd_zval_in, zscore_in, genoty_in,
   r2_in, maf_in, hwe_in, tads_in,
   reporters_out, credset_out, log_out;
 
 srand( unsigned( time( NULL ) ) );  // To randomly assing direction to AR == 0.5, and create the random controls
 
-if(!debug) cout << endl << "Starting ALLELIC IMBA CREDSET" << endl;
-else { cout << endl << "Starting ALLELIC IMBA CREDSET -- in DEBUG MODE --" << endl; }
-{  // Obre totes les entrades i sortides
+if(!debug) cout << endl << "Starting FIND CANDIDATE VARIANTS" << endl;
+else { cout << endl << "Starting FIND CANDIDATE VARIANTS -- in DEBUG MODE --" << endl; }
+{  // Open all inputs and outputs
 size_t p1=0, p2=0, p3=0;
-unsigned field=0;
+unsigned field=0, num_arguments = 7;
+if(!debug)
+  {  // Read input arguments from config file
+  if( !config_in.open( "config.ini", "in", "config" ) )
+    {
+    string config_argv[num_arguments+1], dummy;
+    cout << "Read from config file:\n";
+    for(unsigned k=1; k<num_arguments+1; k++){
+      config_in.file >> dummy >> config_argv[k];
+      cout << dummy <<"\t"<< config_argv[k] << "\n";}
 
-if( debug )
-  {
-  inpath = "/home/ender/projects/t2dsys/case/zscore_out/";
-  genotypath = "/home/ender/projects/t2dsys/genotypes/";  // t2dsystems_chr22.vcf";
-  ginfopath = "/home/ender/Dades/Genomic_Info/";
-  outpath = "/home/ender/projects/t2dsys/case/candidates_full/";
-  input_chr = testchr;
+    trimmed_file = config_argv[1];
+    control_distr_file = config_argv[2];
+    genotype_plink_path = config_argv[3];
+    merged_tads_file = config_argv[4];
+    genotype_vcf_path = config_argv[5];
+    input_chr = config_argv[6];
+    out_path = config_argv[7];
+    }
+  else { cout << "Error reading the config file, terminating!"; return 1; }
+  config_in.close();
   }
-else if( !debug && argc != 6 ) { blob_of_text(); return 0; }
-else if( !debug && argc == 6 )
-  {
-  inpath     = argv[1];
-  genotypath = argv[2];
-  ginfopath  = argv[3];
-  outpath    = argv[4];
-  input_chr  = argv[5];
+else if(debug && argc == (int)num_arguments+1)
+  {  // In debug mode, use command line arguments instead
+    trimmed_file = argv[1];
+    control_distr_file = argv[2];
+    genotype_plink_path = argv[3];
+    merged_tads_file = argv[4];
+    genotype_vcf_path = argv[5];
+    input_chr = argv[6];
+    out_path = argv[7];
   }
+else if(debug && argc != (int)num_arguments+1)
+  {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
 
-if( !data_in.open    ( inpath + "Allelic_Imba_trimmed.txt", "in", "data" ) &&
-    !rnd_zval_in.open( inpath + "Allelic_Imba_rnd_Zscore.txt", "in", "control_distr" ) &&  // Same as before - was different? Search for rnd script
 
-    !r2_in.open ( genotypath + "plink/r2_" +input_chr+ ".ld", "in", "r2" ) &&
-    !maf_in.open( genotypath + "plink/" +input_chr+ ".frq", "in", "MAF" ) &&
-    !hwe_in.open( genotypath + "plink/" +input_chr+ ".hwe", "in", "HWE" ) &&
-    !tads_in.open ( ginfopath  + "Joan_domains/TAD-like/iTADs_merging_INS_KCN.bed", "in", "TADs" ) &&  // INS/KCN iTAD (artificially?) broken
+if( !data_in.open    ( trimmed_file, "in", "data" ) &&
+    !rnd_zval_in.open( control_distr_file, "in", "control_distr" ) &&
 
-    !reporters_out.open ( outpath + "Allelic_Imba_reporters_"+input_chr+".txt", "out" ) &&
-    !credset_out.open( outpath + "Allelic_Imba_CSet_"+input_chr+".txt", "out" ) &&
-    !log_out.open    ( outpath + "Allelic_Imba_CSet_"+input_chr+".log", "out" ) )
+    !r2_in.open  ( genotype_plink_path + input_chr + ".ld", "in", "r2" ) &&
+    !maf_in.open ( genotype_plink_path + input_chr + ".frq", "in", "MAF" ) &&
+    !hwe_in.open ( genotype_plink_path + input_chr + ".hwe", "in", "HWE" ) &&
+    !tads_in.open( merged_tads_file, "in", "TADs" ) &&
+
+    !reporters_out.open ( out_path + "Allelic_Imba_reporters_"+input_chr+".txt", "out" ) &&
+    !credset_out.open( out_path + "Allelic_Imba_CSet_"+input_chr+".txt", "out" ) &&
+    !log_out.open    ( out_path + "Allelic_Imba_CSet_"+input_chr+".log", "out" ) )
   {
   // Get the number and name of samples from the header of Allelic_Imba_trimmed.txt
   data_in.file.getline(header, 65536); strheader = string(header);
@@ -912,7 +894,7 @@ if( !data_in.open    ( inpath + "Allelic_Imba_trimmed.txt", "in", "data" ) &&
   }
 else { return 1; }
 
-if( !genoty_in.open ( genotypath + "t2dsystems_"+input_chr+".vcf", "in", input_chr+"_vcf" ) )
+if( !genoty_in.open ( genotype_vcf_path+input_chr+".vcf", "in", input_chr+"_vcf" ) )
   {
   genoty_in.file.getline(header, 65536);
   while( header[0] == '#' && header[1] == '#' )
@@ -1008,7 +990,7 @@ long fpos;
 for( chrn=0; chrn<22; chrn++ )
   if( cromosomes[chrn] == input_chr )
     {  // Loads all genotypes in the RAM and processes the Zscores and overlaps
-    if( !genoty_in.open ( genotypath + "t2dsystems_" + cromosomes[chrn] + ".vcf", "in", cromosomes[chrn]+"_vcf" ) )
+    if( !genoty_in.open ( genotype_vcf_path + cromosomes[chrn] + ".vcf", "in", cromosomes[chrn]+"_vcf" ) )
       {  // Open the phased genotype file, initiate chromosome dependent stuff
       cout << "Reading genotypes for chr" << chrn+1 << " and searching all possible Z-score pairs" << endl;
       genoty_in.file.getline(header, 65536);
@@ -1099,8 +1081,6 @@ cout << ss.str(); log_out.file << ss.str();
 data_in.close(); rnd_zval_in.close();
 tads_in.close(); hwe_in.close(); r2_in.close(); maf_in.close();
 credset_out.close(); reporters_out.close(); log_out.close();
-
-//cin.get();
 }
 
 
