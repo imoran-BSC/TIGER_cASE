@@ -371,7 +371,7 @@ if( write_intermediate )
 }
 
 string mask_temp_file = out_standard_path+"mask_temp.sam",
-  enh_temp_file = out_standard_path+"mask_temp.sam";
+  enh_temp_file = out_standard_path+"enh_temp.sam";
 class_read enh_read, mask_read;
 
 //int enhcounter=0;
