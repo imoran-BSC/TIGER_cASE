@@ -12,7 +12,7 @@ were used in different analyses in the study.
 
 Each script can be compiled to a binary executable file by using
 
-```g++ -Wall -o step01_binary step_01.cpp ../utils/allelic_imba_common.cpp```
+```g++ -Wall -o stepN_binary step_N.cpp ../utils/allelic_imba_common.cpp```
 
 Each binary expects a ```config.ini``` file residing in the same directory,
 containing the necessary arguments for the executions. Example config
@@ -21,6 +21,10 @@ the type of the expected arguments, and of their particular formatting.
 Prior to executing the binary, please _make sure that all the necessary 
 arguments in ```config.ini``` are correct_, and that they refer to the expected 
 data files. Otherwise, the execution will terminate unexpectedly.
+
+The resulting binary can then be executed in a unix terminal as follows:
+
+```./stepN_binary```
 
 These scripts are numbered to indicate their execution order in the 
 analysis workflow. However, these don't comprise a full pipeline, 
