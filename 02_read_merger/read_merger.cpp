@@ -579,10 +579,8 @@ for(int chrn=0; chrn<24; chrn++) if( !debug || chrn == 19 || chrn == 20 || chrn 
 cout << "Converting non-clonal output to .bam and sorting\n";
 nonclon_out.file.flush(); nonclon_out.close();
 
-funct_sam2bam( sys = out_nonclonal_path+"accepted_hits.nonclonal.sam" );
-//try { funct_sam2bam( sys = outnonclonal+"accepted_hits.nonclonal.sam" ); }
-//catch( string sam2bamerror ){ cout << "System error in sam2bam with "
-//  << sam2bamerror << "\nTerminating!\n"; cin.get(); return 1; }
+sys = out_nonclonal_path+"accepted_hits.nonclonal.sam";
+funct_sam2bam( sys );
 
 // Statistics
 funct_write_stats( found_count, concord_count, chr_discordant, enh_count, mask_count,
