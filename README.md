@@ -19,8 +19,13 @@ containing the necessary arguments for the executions. Example config
 files are already included in this repository, with a brief description of 
 the type of the expected arguments, and of their particular formatting.
 Prior to executing the binary, please _make sure that all the necessary 
-arguments in ```config.ini``` are correct_ and that they refer to the expected 
+arguments in ```config.ini``` are correct_, and that they refer to the expected 
 data files. Otherwise, the execution will terminate unexpectedly.
+
+These scripts are numbered to indicate their execution order in the 
+analysis workflow. However, these don't comprise a full pipeline, 
+since some can be executed in a standalone manner, or some require
+pre- or post-processing of the data.
 
 The code is provided as is, for informational purposes, and without any 
 warranties. It has only been tested in a limited number of environments.
