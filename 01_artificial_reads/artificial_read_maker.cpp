@@ -483,7 +483,7 @@ class_fstream config_in, snps_in, hg19_in, gtf_in,
 if(!debug) cout << "Starting ARTREAD_MAKER\n";
 else cout << "Starting ARTREAD_MAKER -- in DEBUG mode --\n";
 
-{  // Open all inputs and outputs
+{  // Opening inputs and outputs
 unsigned num_arguments = 6;
 if(!debug)
   {  // Read input arguments from config file

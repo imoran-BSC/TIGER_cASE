@@ -368,7 +368,7 @@ for(unsigned i=0; i<4; i++) for(unsigned j=0; j<4; j++) if(i != j)
 
 if(!debug) cout << "Starting FILTER AND UNIFY" << endl;
 else cout << "Starting FILTER AND UNIFY -- in DEBUG MODE --" << endl;
-{  // Open all inputs and outputs
+{  // Opening inputs and outputs
 unsigned num_arguments = 5;
 if(!debug)
   {  // Read input arguments from config file

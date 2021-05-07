@@ -812,7 +812,7 @@ srand( unsigned( time( NULL ) ) );  // To randomly assing direction to AR == 0.5
 
 if(!debug) cout << endl << "Starting FIND CANDIDATE VARIANTS" << endl;
 else { cout << endl << "Starting FIND CANDIDATE VARIANTS -- in DEBUG MODE --" << endl; }
-{  // Open all inputs and outputs
+{  // Opening inputs and outputs
 size_t p1=0, p2=0, p3=0;
 unsigned field=0, num_arguments = 7;
 if(!debug)

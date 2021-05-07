@@ -289,7 +289,7 @@ srand( unsigned( time( NULL ) ) );  // Random seed initialization
 
 if(!debug) cout << endl << "Starting ALLELIC IMBA RANDOMIZER\n" << endl;
 else cout << endl << "Starting ALLELIC IMBA RANDOMIZER -- in DEBUG MODE --\n" << endl;
-{  // Open all inputs and outputs
+{  // Opening inputs and outputs
 unsigned num_arguments = 3;
 if(!debug)
   {  // Read input arguments from config file

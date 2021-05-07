@@ -1,20 +1,21 @@
 /*
- *   READ_MERGER.CPP
+ *  READ_MERGER.CPP
  *
- *   Reads an accepted_hits.sorted.sam ENHANCED and MASKED alignments, and outputs a
- *   MERGED accepted_hits.sorted.bam and non-clonal accepted_hits.sorted.bam files
- *   Now with super reduced memory footprint!
+ *  Reads an accepted_hits.sorted.sam ENHANCED and MASKED alignments,
+ *  and outputs a MERGED accepted_hits.sorted.bam and non-clonal
+ *  accepted_hits.sorted.bam files.
  *
- *   Last edited on 04/12/2015
- *   Written by Ignasi Moran Castany
+ *  Written by Ignasi Moran
  */
 
-//#include "../includes.h"
-//#include "../class_fstream.h"
-
-// mon
-#include "includes.h"
-#include "class_fstream.h"
+#include <string>
+#include <vector>
+#include <list>
+#include <sstream>
+#include <map>
+#include <set>
+#include <iomanip>
+#include "../utils/class_fstream.h"
 
 
 using namespace std;
@@ -32,13 +33,13 @@ const string chrequal = "=", chrdummy = "chrDummy", cromosomes[24] = {
  */
 
 class class_read
-{  // Conte tots els camps d'una read
+{  // All fields related to an RNAseq read
 public:
   bool found;
   int flag, score, align_length;
   long int pose;
   string name, cigar, quality, mate_pose, additional,
-    key;  // es name{bases, que s'extreuen d'aqui en imprimir per reduir memoria
+    key;  // search key = name{bases , uses { as separator since it is not found in quality characters
   const string *chr, *mate_chr;
 
   class_read() : found(false), flag(0), score(0), align_length(0), pose(0),
@@ -93,11 +94,11 @@ public:
       str_pose = line.find("\t", prev_pose);
       }
 
-    // Complex key to remove clonal reads: if they are equal in all these fields
-    // they will be discarded
+    // Complex key to remove clonal reads: if they are equal in all
+    // these fields they will be discarded
     if( noncl ) key = noncl_key_ss.str();
 
-    // Camps addicionals, tots en una sola variable
+    // Additional fields, stored all in this variable
 //    str_pose = line.find("XR:Z:"); str_pose--;  // Temporary fix to samtools parse error
 //    if( str_pose != string::npos ) additional = line.substr(prev_pose, str_pose-prev_pose);  // If enhanced
 //    else
@@ -272,59 +273,69 @@ char maskline[1024], enhline[1024], headline[1024];
 long int masked_read_count = 0, merged_read_count = 0, s_agree=0, s_disagree=0, ns_agree=0, ns_disagree=0,
   found_count=0, concord_count=0, enh_read_count=0, enh_count=0, mask_count=0, chr_discordant=0, clon_count=0;  // Counters for general statistics
 
-string sys, path, enhpath, maskpath, outpath, outnonclonal, chr_t ="";
+string sys, header_file, enhanced_file, masked_file,
+  out_standard_path, out_nonclonal_path, chr_t ="";
 stringstream header_ss;
 
 vector<class_read> enhancedsp_vector;
 map<string, class_read> mask_reads_map, specific_reads_map;
 map<string, class_read>::iterator map_it;
 
-class_fstream header_in, enhanced_in, masked_in, merged_out, nonclon_out, stats_out,
+class_fstream config_in, header_in, enhanced_in, masked_in, merged_out, nonclon_out, stats_out,
   enhanced_out, masked_out, merged_in, common_out, discord_out;
 
 if(!debug) cout << "Initiating READ MERGER\n";
 else cout << "Initiating READ MERGER -- Debug mode --\n";
 
 {  // Opening inputs and outputs
-cout << "Opening inputs and outputs" << endl;
-if(!debug && argc == 1)
-  {
-  cout << "Path to the ENHANCED accepted_hits.sorted.sam file (ending in /): ";
-  cin >> enhpath;
-  cout << "Path to the MASKED accepted_hits.sorted.sam file (ending in /): ";
-  cin >> maskpath;
-  cout << "Path to the regular output folder (ending in /)";
-  cin >> outpath;
-  cout << "Path to the nonclonal output folder (ending in /)";
-  cin >> outnonclonal;
-  }
-else if(!debug && argc == 5) { enhpath = argv[1]; maskpath = argv[2]; outpath = argv[3]; outnonclonal = argv[4]; }
-else if(!debug && argc > 5) {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
-else if( debug )
-  {
-  enhpath  = "/home/ignasi/Imperial/Fastq_Data/HI86/bowtie2_out/";
-  maskpath = "/home/ignasi/Imperial/Fastq_Data/HI86/star_out/";
-  outpath  = "/home/ignasi/Imperial/Fastq_Data/HI86/newmerge/";
-  outnonclonal  = "/home/ignasi/Imperial/Fastq_Data/HI86/newmerge/nonclonal/";
-  }
+unsigned num_arguments = 4;
+if(!debug)
+  {  // Read input arguments from config file
+  if( !config_in.open( "config.ini", "in", "config" ) )
+    {
+    string config_argv[num_arguments+1], dummy;
+    cout << "Read from config file:\n";
+    for(unsigned k=1; k<num_arguments+1; k++){
+      config_in.file >> dummy >> config_argv[k];
+      cout << dummy <<"\t"<< config_argv[k] << "\n";}
 
-cout << "Given paths are:\nEnhanced: " << enhpath << "\nMasked: " << maskpath
-  << "\nOutput: " << outpath << " and " << outnonclonal << "\n";
+    enhanced_file = config_argv[1];
+    masked_file = config_argv[2];
+    out_standard_path = config_argv[3];
+    out_nonclonal_path = config_argv[4];
+    }
+  else { cout << "Error reading the config file, terminating!"; return 1; }
+  config_in.close();
+  }
+else if(debug && argc == (int)num_arguments+1)
+  {  // In debug mode, use command line arguments instead
+  enhanced_file = argv[1];
+  masked_file = argv[2];
+  out_standard_path = argv[3];
+  out_nonclonal_path = argv[4];
+  }
+else if(debug && argc != (int)num_arguments+1)
+  {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
 
-sys = "mkdir " + outpath + "; mkdir " + outnonclonal;
+cout << "Given paths were:\nEnhanced: " << enhanced_file
+  << "\nMasked: " << masked_file
+  << "\nOutputs: " << out_standard_path << " and " << out_nonclonal_path << "\n";
+
+sys = "mkdir " + out_standard_path + "; mkdir " + out_nonclonal_path;
 system(sys.c_str());
 //if( system(sys.c_str()) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
 
 // Extracts the header for further use
-sys = "sleep 10; samtools view -H " + maskpath + "accepted_hits.sorted.bam > "
-  + maskpath + "header.sam; sleep 10;";
+header_file = out_standard_path+"header.sam";
+sys = "sleep 10; samtools view -H " + masked_file + " > "
+  + header_file + "; sleep 10;";
 system(sys.c_str());
 //if( system(sys.c_str()) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
 
-if( !header_in.obre   ( maskpath+"header.sam", "in", "header") &&
-    !merged_out.obre  ( outpath+"accepted_hits.merged.sam", "out" ) &&
-    !nonclon_out.obre ( outnonclonal+"accepted_hits.nonclonal.sam", "out" ) &&
-    !stats_out.obre   ( outpath+"Merging_statistics.txt", "out" ) )
+if( !header_in.open   ( header_file, "in", "header") &&
+    !merged_out.open  ( out_standard_path +"accepted_hits.merged.sam", "out" ) &&
+    !nonclon_out.open ( out_nonclonal_path+"accepted_hits.nonclonal.sam", "out" ) &&
+    !stats_out.open   ( out_standard_path +"Merging_statistics.txt", "out" ) )
   {
   // Read the header, close it and write the output files
   int i=0; header_in.file.getline(headline, 1024);
@@ -334,7 +345,7 @@ if( !header_in.obre   ( maskpath+"header.sam", "in", "header") &&
     header_in.file.getline(headline, 1024);
     i++;
     }
-  header_in.tanca(); sys = "rm " + maskpath + "header.sam";
+  header_in.close(); sys = "rm " + header_file;
   system(sys.c_str());
 //  if( system(sys.c_str()) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
 
@@ -346,10 +357,10 @@ else { while( !cin.get() ) ; return 1; }
 
 if( write_intermediate )
   {  // Intermediate files
-  if( !enhanced_out.obre( outpath+"accepted_hits.enhanced_specific.sam", "out" ) &&
-      !masked_out.obre  ( outpath+"accepted_hits.masked_specific.sam", "out" ) &&
-      !common_out.obre  ( outpath+"accepted_hits.common.sam", "out" ) &&
-      !discord_out.obre ( outpath+"accepted_hits.discordant.sam", "out" ) )
+  if( !enhanced_out.open( out_standard_path+"accepted_hits.enhanced_specific.sam", "out" ) &&
+      !masked_out.open  ( out_standard_path+"accepted_hits.masked_specific.sam", "out" ) &&
+      !common_out.open  ( out_standard_path+"accepted_hits.common.sam", "out" ) &&
+      !discord_out.open ( out_standard_path+"accepted_hits.discordant.sam", "out" ) )
     {
     enhanced_out.file << header_ss.str() << "@PG\tID:Bowtie2_enhanced_specific\n";
     masked_out.file << header_ss.str()   << "@PG\tID:TopHat2_masked_specific\n";
@@ -359,6 +370,8 @@ if( write_intermediate )
   }
 }
 
+string mask_temp_file = out_standard_path+"mask_temp.sam",
+  enh_temp_file = out_standard_path+"mask_temp.sam";
 class_read enh_read, mask_read;
 
 //int enhcounter=0;
@@ -368,17 +381,17 @@ for(int chrn=0; chrn<24; chrn++) if( !debug || chrn == 19 || chrn == 20 || chrn 
   cout << "\nStart of " << chr_t << ". Extracting the reads from the bam files\n";
 
   // Extract the bam files reads, since they are randomly sorted
-  sys = "sleep 10; samtools view " + maskpath + "accepted_hits.sorted.bam " + chr_t + " > "
-    + maskpath + "temp.sam; sleep 10;";
+  sys = "sleep 10; samtools view " + masked_file + " " + chr_t + " > "
+    + mask_temp_file + "; sleep 10;";
   system(sys.c_str());  // Unprotected calls, to see if we get more info when they blow up
 //  if( system(sys.c_str())  == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
-  sys = "sleep 10; samtools view " + enhpath + "accepted_hits.sorted.bam " + chr_t + " > "
-    + enhpath + "temp.sam; sleep 10;";
+  sys = "sleep 10; samtools view " + enhanced_file + " " + chr_t + " > "
+    + enh_temp_file + "; sleep 10;";
   system(sys.c_str());  // Unprotected calls, to see if we get more info when they blow up
 //  if( system(sys.c_str())  == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
 
-  if( !enhanced_in.obre ( enhpath +"temp.sam", "in", chr_t+" enhanced reads" ) &&
-      !masked_in.obre   ( maskpath+"temp.sam", "in", chr_t+" masked reads" ) )
+  if( !enhanced_in.open ( enh_temp_file, "in", chr_t+" enhanced reads" ) &&
+      !masked_in.open   ( mask_temp_file, "in", chr_t+" masked reads" ) )
     { enhanced_in.file.getline(enhline, 1024); enh_read.get( enhline );
       masked_in.file.getline(maskline, 1024); mask_read.get( maskline ); }
     else { while( !cin.get() ) ; return 1; }
@@ -457,7 +470,7 @@ for(int chrn=0; chrn<24; chrn++) if( !debug || chrn == 19 || chrn == 20 || chrn 
   mask_reads_map.clear();
 
   cout << "End of " << chr_t << "\n";
-  enhanced_in.tanca(); masked_in.tanca();
+  enhanced_in.close(); masked_in.close();
   }
 
 if( account_for_discordant )
@@ -500,9 +513,9 @@ if( account_for_discordant )
   }
 
 cout << "\nConverting merged output to .bam and sorting\n";
-merged_out.file.flush(); merged_out.tanca();
-funct_sam2bam( sys = outpath+"accepted_hits.merged.sam" );
-//try { funct_sam2bam( sys = outpath+"accepted_hits.merged.sam" ); }
+merged_out.file.flush(); merged_out.close();
+funct_sam2bam( sys = out_standard_path+"accepted_hits.merged.sam" );
+//try { funct_sam2bam( sys = out_standard_path+"accepted_hits.merged.sam" ); }
 //catch( string sam2bamerror ){ cout << "System error in sam2bam with "
 //  << sam2bamerror << "\nTerminating!\n"; cin.get(); return 1; }
 
@@ -515,12 +528,12 @@ for(int chrn=0; chrn<24; chrn++) if( !debug || chrn == 19 || chrn == 20 || chrn 
   cout << "\nStart of " << chr_t << ". Extracting the reads from the merged sam file.\n";
 
   // Extract the chr reads from the merged sam file
-  sys = "sleep 10; samtools view " + outpath + "accepted_hits.sorted.bam " + chr_t + " > "
-    + outpath + "temp.sam; sleep 10;";
+  sys = "sleep 10; samtools view " + out_standard_path + "accepted_hits.sorted.bam " + chr_t + " > "
+    + out_standard_path + "temp.sam; sleep 10;";
   system(sys.c_str());
 //  if( system(sys.c_str()) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
 
-  if( !merged_in.obre ( outpath +"temp.sam", "in", chr_t+" merged reads" ) )
+  if( !merged_in.open ( out_standard_path +"temp.sam", "in", chr_t+" merged reads" ) )
     { merged_in.file.getline(maskline, 1024); mask_read.get( maskline,1 ); }
   else { while( !cin.get() ) ; return 1; }
 
@@ -535,7 +548,7 @@ for(int chrn=0; chrn<24; chrn++) if( !debug || chrn == 19 || chrn == 20 || chrn 
 
     merged_in.file.getline(maskline, 1024);
     }
-  merged_in.tanca();
+  merged_in.close();
 
   cout << "Writing " << mask_reads_map.size() << " nonclonal reads\n";
   for(map_it = mask_reads_map.begin(); map_it != mask_reads_map.end(); ++map_it)
@@ -547,9 +560,9 @@ for(int chrn=0; chrn<24; chrn++) if( !debug || chrn == 19 || chrn == 20 || chrn 
   }
 
 cout << "Converting non-clonal output to .bam and sorting\n";
-nonclon_out.file.flush(); nonclon_out.tanca();
+nonclon_out.file.flush(); nonclon_out.close();
 
-funct_sam2bam( sys = outnonclonal+"accepted_hits.nonclonal.sam" );
+funct_sam2bam( sys = out_nonclonal_path+"accepted_hits.nonclonal.sam" );
 //try { funct_sam2bam( sys = outnonclonal+"accepted_hits.nonclonal.sam" ); }
 //catch( string sam2bamerror ){ cout << "System error in sam2bam with "
 //  << sam2bamerror << "\nTerminating!\n"; cin.get(); return 1; }
@@ -561,15 +574,15 @@ funct_write_stats( found_count, concord_count, chr_discordant, enh_count, mask_c
 
 cout << "\nDone!\n";
 
-sys = "rm " + enhpath + "temp.sam"; system( sys.c_str() );
+sys = "rm " + enh_temp_file; system( sys.c_str() );
 //if( system( sys.c_str() ) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
-sys = "rm " + maskpath + "temp.sam"; system( sys.c_str() );
+sys = "rm " + mask_temp_file; system( sys.c_str() );
 //if( system( sys.c_str() ) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
-sys = "rm " + outpath + "temp.sam"; system( sys.c_str() );
+sys = "rm " + out_standard_path + "temp.sam"; system( sys.c_str() );
 //if( system( sys.c_str() ) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
 
-header_in.tanca(); enhanced_in.tanca(); masked_in.tanca(); nonclon_out.tanca();
-stats_out.tanca(); enhanced_out.tanca(); masked_out.tanca(); common_out.tanca();
+header_in.close(); enhanced_in.close(); masked_in.close(); nonclon_out.close();
+stats_out.close(); enhanced_out.close(); masked_out.close(); common_out.close();
 
 return 0;
 }
