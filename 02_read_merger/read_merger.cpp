@@ -1,9 +1,9 @@
 /*
  *  READ_MERGER.CPP
  *
- *  Reads an accepted_hits.sorted.sam ENHANCED and MASKED alignments,
- *  and outputs a MERGED standard and non-clonal
- *  accepted_hits.sorted.bam files.
+ *  Reads the indexed and sorted .bam files outputed from the
+ *  ENHANCED and MASKED alignments, and outputs a MERGED standard
+ *  and non-clonal .bam files.
  *  Performs many system calls to samtools, which is required to be
  *  installed and system-wide available.
  *
@@ -25,6 +25,9 @@ using namespace std;
 const bool debug = 0,  // DEBUG FLAG
   account_for_discordant = 1,  // Account for possible chr-discordant alignments
   write_intermediate = 0;  // Writes separated common, enhSp and maskSp sam files
+const unsigned sleep_s = 10;  // Add sleeps before system calls
+// to avoid overloading disk I/O
+// If samtools crashes the executions, try increasing sleep_s to 300+
 
 const string chrequal = "=", chrdummy = "chrDummy", cromosomes[24] = {
   "chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9",
@@ -157,9 +160,6 @@ public:
 
 void exec_sys_call( string sys )
 {  // Executes a system call with sanwiched sleeps
-unsigned sleep_s = 10;  // Add sleeps before system calls
-// to avoid overloading disk I/O
-// If samtools crashes the execution, try increasing sleep_s to 300+
 stringstream slsys;
 
 slsys << "sleep "<< sleep_s <<"; "

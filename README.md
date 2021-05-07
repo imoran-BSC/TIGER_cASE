@@ -41,10 +41,20 @@ alternate alleles, any deviation form the expected 50% allelic ratio can be
 attributed to problems with the alignment strategy, and discarded
 from downstream analyses.
 
-## 02 Filter and Unify Alignments
+## 02 Read Merger
+Reads the indexed and sorted .bam files outputed from the ENHANCED 
+and MASKED alignments, and outputs a MERGED standard and non-clonal
+.bam files.
+This script heavily depends on system calls to ```samtools```, 
+which is _required to be installed and system-wide available_.
+The system calls use unix-specific syntax, so this code is not expected
+to work in other environments.
+
+## 03 Filter and Unify Alignments
 Given a list of sample names as input, this script reads all allelic 
 imbalance quantification.txt files, obtained using ```samtools mpileup``` and 
-```ComputePileupFreqs.pl```, as explained in the Online Methods section. 
+```ComputePileupFreqs.pl``` on the output files of step 02,
+as explained in the Online Methods section. 
 It also requires a .vcf genotype file, with the genotypes 
 of all samples of interest in columns, in any order. This script then
 filters all input data and creates a unified output file with all the 
@@ -54,7 +64,7 @@ or Benjamini Hochberg significance thresholds.
 The resulting outputs are intermediary files necessary for downstream 
 analyses.
 
-## 03 Permuted Reporter Imbalance
+## 04 Permuted Reporter Imbalance
 This script reads an Allelic_Imba_trimmed.txt file, outtputed in step 02,
 calculates the empiric Z-score distribution, then randomises
 the Het variant read counts N times, and creates an expected null Z-score 
@@ -68,7 +78,7 @@ in the downstream analyses as the null distribution, _i.e._ the expected
 distribution of allelic imbalance Z-scores that would be obtained if 
 all allelic biases were the product of biological stochasticity.
 
-## 04 Find Candidate Variants
+## 05 Find Candidate Variants
 This script reads an Allelic_Imba_trimmed.txt file outputted in step 02,
 the control Z-score distribution outputted in step 03,
 and the full genotype of the given chr. It also reequires PLINK 
