@@ -2,8 +2,10 @@
  *  READ_MERGER.CPP
  *
  *  Reads an accepted_hits.sorted.sam ENHANCED and MASKED alignments,
- *  and outputs a MERGED accepted_hits.sorted.bam and non-clonal
+ *  and outputs a MERGED standard and non-clonal
  *  accepted_hits.sorted.bam files.
+ *  Performs many system calls to samtools, which is required to be
+ *  installed and system-wide available.
  *
  *  Written by Ignasi Moran
  */
@@ -15,6 +17,7 @@
 #include <map>
 #include <set>
 #include <iomanip>
+#include <stdexcept>
 #include "../utils/class_fstream.h"
 
 
@@ -61,31 +64,40 @@ public:
 
       switch(k)
         {  // Reads the read info and stores it to write it out later
-        case 1: if( !noncl ) key = dummy;
-          else name = dummy; break;
+        case 1:
+          if( !noncl ) key = dummy;
+          else name = dummy;
+          break;
         case 2: flag = atoi(dummy.c_str()); break;
         case 3:  // To reduce ram footprint, chrs are stored as pointers
           chr = &chrdummy;
           for( int chrn=0; chrn<24; chrn++ )
             if( cromosomes[chrn] == dummy ) chr = &(cromosomes[chrn]);
           break;
-        case 4: if(!noncl) pose = atol(dummy.c_str());
-          else noncl_key_ss << dummy << "{"; break;
+        case 4:
+          if(!noncl) pose = atol(dummy.c_str());
+          else noncl_key_ss << dummy << "{";
+          break;
         case 5: score = atoi(dummy.c_str()); break;
-        case 6: if(!noncl) cigar = dummy;
-          else noncl_key_ss << dummy << "{"; break;
+        case 6:
+          if(!noncl) cigar = dummy;
+          else noncl_key_ss << dummy << "{";
+          break;
         case 7:
           mate_chr = &chrdummy;
           if( dummy == "=" ) mate_chr = &(chrequal);
           else{ for( int chrn=0; chrn<24; chrn++ )
             if( cromosomes[chrn] == dummy ) mate_chr = &(cromosomes[chrn]); }
           break;
-        case 8: if(!noncl) mate_pose = dummy;  // Was atol, but it is not used as numeric
-          else noncl_key_ss << dummy << "{"; break;
+        case 8:
+          if(!noncl) mate_pose = dummy;  // Was atol, but it is not used as numeric
+          else noncl_key_ss << dummy << "{";
+          break;
         case 9: align_length = atoi(dummy.c_str()); break;
         case 10:
           if( !noncl ) key = key + "{" + dummy;
-          else noncl_key_ss << dummy; break;
+          else noncl_key_ss << dummy;
+          break;
         case 11: quality = dummy; break;
         default: break;
         }
@@ -142,6 +154,36 @@ public:
 /*
  *   SECONDARY FUNCTIONS
  */
+
+void exec_sys_call( string sys )
+{  // Executes a system call with sanwiched sleeps
+unsigned sleep_s = 10;  // Add sleeps before system calls
+// to avoid overloading disk I/O
+// If samtools crashes the execution, try increasing sleep_s to 300+
+stringstream slsys;
+
+slsys << "sleep "<< sleep_s <<"; "
+  << sys << "; sleep" << sleep_s << ";";
+
+if( system(slsys.str().c_str()) == -1 )
+  {
+  stringstream ss;
+  ss << "Sam2bam system call error with " << sys << "\n";
+  throw runtime_error( ss.str() );
+  }
+}
+
+void funct_sam2bam( string& file )
+{  // Converts a given sam file to bam, sorts and indexes it
+string sys, path = file.substr( 0, file.find_last_of("/")+1 );
+
+sys = "samtools view -bhS " + file + " | samtools sort -@ 12 - " + path
+  + "accepted_hits.sorted; samtools index " + path + "accepted_hits.sorted.bam;";
+if(debug) cout << sys << "\n";
+exec_sys_call(sys);
+
+if(!debug) { sys = "rm " + file; exec_sys_call(sys); }
+}
 
 int funct_search_read_in_map( class_read& enh_read, map<string,class_read>& mask_reads_map,
   map<string,class_read>::iterator& map_it )
@@ -217,22 +259,6 @@ while( str_pose1 != string::npos && str_pose1 < eread.cigar.length() )
 if( calc_finm == calc_fine ) num_matches++;
 
 return num_matches;
-}
-
-void funct_sam2bam( string& file )
-{  // Converts a given sam file to bam, sorts and indexes it
-string sys, path = file.substr( 0, file.find_last_of("/")+1 );
-
-sys = "sleep 10; samtools view -bhS " + file + " | samtools sort -@ 12 - " + path
-  + "accepted_hits.sorted; samtools index " + path + "accepted_hits.sorted.bam; sleep 10;";
-if(debug) cout << sys << "\n";
-system(sys.c_str());
-//if( system(sys.c_str()) == -1 ) { stringstream ss;
-//  ss << "Sam2bam system call error with " << sys << "\n"; throw ss.str(); }
-
-if(!debug) { sys = "rm " + file; system(sys.c_str()); }
-//  if( system(sys.c_str()) == -1 ) { stringstream ss;
-//    ss << "Sam2bam system call error with " << sys << "\n"; throw ss.str(); } }
 }
 
 void funct_write_stats( long int& found_count, long int& concord_count, long int& chr_discordant,
@@ -322,15 +348,13 @@ cout << "Given paths were:\nEnhanced: " << enhanced_file
   << "\nOutputs: " << out_standard_path << " and " << out_nonclonal_path << "\n";
 
 sys = "mkdir " + out_standard_path + "; mkdir " + out_nonclonal_path;
-system(sys.c_str());
-//if( system(sys.c_str()) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
+exec_sys_call(sys);
 
 // Extracts the header for further use
 header_file = out_standard_path+"header.sam";
-sys = "sleep 10; samtools view -H " + masked_file + " > "
-  + header_file + "; sleep 10;";
-system(sys.c_str());
-//if( system(sys.c_str()) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
+sys = "samtools view -H " + masked_file + " > "
+  + header_file + ";";
+exec_sys_call(sys);
 
 if( !header_in.open   ( header_file, "in", "header") &&
     !merged_out.open  ( out_standard_path +"accepted_hits.merged.sam", "out" ) &&
@@ -346,8 +370,7 @@ if( !header_in.open   ( header_file, "in", "header") &&
     i++;
     }
   header_in.close(); sys = "rm " + header_file;
-  system(sys.c_str());
-//  if( system(sys.c_str()) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
+  exec_sys_call(sys);
 
   // Writing output headers
   merged_out.file << header_ss.str() << "@PG\tID:Bowtie2_and_TopHat2_merged\n";
@@ -381,14 +404,12 @@ for(int chrn=0; chrn<24; chrn++) if( !debug || chrn == 19 || chrn == 20 || chrn 
   cout << "\nStart of " << chr_t << ". Extracting the reads from the bam files\n";
 
   // Extract the bam files reads, since they are randomly sorted
-  sys = "sleep 10; samtools view " + masked_file + " " + chr_t + " > "
-    + mask_temp_file + "; sleep 10;";
-  system(sys.c_str());  // Unprotected calls, to see if we get more info when they blow up
-//  if( system(sys.c_str())  == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
-  sys = "sleep 10; samtools view " + enhanced_file + " " + chr_t + " > "
-    + enh_temp_file + "; sleep 10;";
-  system(sys.c_str());  // Unprotected calls, to see if we get more info when they blow up
-//  if( system(sys.c_str())  == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
+  sys = "samtools view " + masked_file + " " + chr_t + " > "
+    + mask_temp_file + ";";
+  exec_sys_call(sys);
+  sys = "samtools view " + enhanced_file + " " + chr_t + " > "
+    + enh_temp_file + ";";
+  exec_sys_call(sys);
 
   if( !enhanced_in.open ( enh_temp_file, "in", chr_t+" enhanced reads" ) &&
       !masked_in.open   ( mask_temp_file, "in", chr_t+" masked reads" ) )
@@ -515,9 +536,6 @@ if( account_for_discordant )
 cout << "\nConverting merged output to .bam and sorting\n";
 merged_out.file.flush(); merged_out.close();
 funct_sam2bam( sys = out_standard_path+"accepted_hits.merged.sam" );
-//try { funct_sam2bam( sys = out_standard_path+"accepted_hits.merged.sam" ); }
-//catch( string sam2bamerror ){ cout << "System error in sam2bam with "
-//  << sam2bamerror << "\nTerminating!\n"; cin.get(); return 1; }
 
 // Now we read the merged sam file, put it in a hash, and print that out, to create a nonclonal output
 cout << "\nDone. Now removing clonal reads";  // Done separately rather than in parallel, to reduce ram footprint
@@ -528,10 +546,9 @@ for(int chrn=0; chrn<24; chrn++) if( !debug || chrn == 19 || chrn == 20 || chrn 
   cout << "\nStart of " << chr_t << ". Extracting the reads from the merged sam file.\n";
 
   // Extract the chr reads from the merged sam file
-  sys = "sleep 10; samtools view " + out_standard_path + "accepted_hits.sorted.bam " + chr_t + " > "
-    + out_standard_path + "temp.sam; sleep 10;";
-  system(sys.c_str());
-//  if( system(sys.c_str()) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
+  sys = "samtools view " + out_standard_path + "accepted_hits.sorted.bam " + chr_t + " > "
+    + out_standard_path + "temp.sam;";
+  exec_sys_call(sys);
 
   if( !merged_in.open ( out_standard_path +"temp.sam", "in", chr_t+" merged reads" ) )
     { merged_in.file.getline(maskline, 1024); mask_read.get( maskline,1 ); }
@@ -574,12 +591,9 @@ funct_write_stats( found_count, concord_count, chr_discordant, enh_count, mask_c
 
 cout << "\nDone!\n";
 
-sys = "rm " + enh_temp_file; system( sys.c_str() );
-//if( system( sys.c_str() ) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
-sys = "rm " + mask_temp_file; system( sys.c_str() );
-//if( system( sys.c_str() ) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
-sys = "rm " + out_standard_path + "temp.sam"; system( sys.c_str() );
-//if( system( sys.c_str() ) == -1 ) {cout << "System error in " << sys << "\nTerminating!\n"; cin.get(); return 1;}
+sys = "rm " + enh_temp_file; exec_sys_call(sys);
+sys = "rm " + mask_temp_file; exec_sys_call(sys);
+sys = "rm " + out_standard_path + "temp.sam"; exec_sys_call(sys);
 
 header_in.close(); enhanced_in.close(); masked_in.close(); nonclon_out.close();
 stats_out.close(); enhanced_out.close(); masked_out.close(); common_out.close();
