@@ -58,9 +58,9 @@ and MASKED alignments, and outputs a MERGED standard and non-clonal
 .bam files.
 
 This script _requires ```samtools``` to be installed and system-wide
-available_, and it has been tested with version 1.7. Other versions have 
-not been tested, and if they have different syntax requirements 
-execution will unexpectedly fail.
+available_, and has been built and tested using version 1.7. Other versions 
+have not been tested, and if they have different syntax requirements, 
+execution may unexpectedly fail.
 The system calls use unix-specific syntax, so this code is not expected
 to work in other environments.
 

@@ -307,7 +307,7 @@ long int masked_read_count = 0, merged_read_count = 0, s_agree=0, s_disagree=0, 
   found_count=0, concord_count=0, enh_read_count=0, enh_count=0, mask_count=0, chr_discordant=0, clon_count=0;  // Counters for general statistics
 
 string sys, header_file, enhanced_file, masked_file,
-  out_standard_path, out_nonclonal_path, chr_t ="";
+  out_path, out_standard_path, out_nonclonal_path, chr_t ="";
 stringstream header_ss;
 
 vector<class_read> enhancedsp_vector;
@@ -335,8 +335,7 @@ if(!debug)
     enhanced_file = config_argv[1];
     masked_file = config_argv[2];
     num_threads = config_argv[3];
-    out_standard_path = config_argv[4];
-    out_nonclonal_path = config_argv[5];
+    out_path = config_argv[4];
     }
   else { cout << "Error reading the config file, terminating!"; return 1; }
   config_in.close();
@@ -346,11 +345,14 @@ else if(debug && argc == (int)num_arguments+1)
   enhanced_file = argv[1];
   masked_file = argv[2];
   num_threads = argv[3];
-  out_standard_path = argv[4];
-  out_nonclonal_path = argv[5];
+  out_path = argv[4];
   }
 else if(debug && argc != (int)num_arguments+1)
   {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
+
+// Hard-coded subfolders, which are expected by step 03.
+out_standard_path = out_path = "merged_out/";
+out_nonclonal_path = out_path = "nonclonal_out/";
 
 cout << "Given paths were:\nEnhanced: " << enhanced_file
   << "\nMasked: " << masked_file
