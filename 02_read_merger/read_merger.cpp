@@ -28,6 +28,8 @@ const bool debug = 0,  // DEBUG FLAG
 const unsigned sleep_s = 10;  // Add sleeps before system calls
 // to avoid overloading disk I/O
 // If samtools crashes the executions, try increasing sleep_s to 300+
+string num_threads;  // Multithreading speedup, defined as argv
+
 
 const string chrequal = "=", chrdummy = "chrDummy", cromosomes[24] = {
   "chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9",
@@ -158,17 +160,22 @@ public:
  *   SECONDARY FUNCTIONS
  */
 
-void exec_sys_call( string sys )
+void exec_sys_call( string sys_str )
 {  // Executes a system call with sanwiched sleeps
-stringstream slsys;
+stringstream sys_ss;
 
-slsys << "sleep "<< sleep_s <<"; "
-  << sys << "; sleep" << sleep_s << ";";
+//cout << sys_str << "\nback is\n" << sys_str.back(); cin.get();
 
-if( system(slsys.str().c_str()) == -1 )
+if( sys_str.back() == ';' )
+  sys_str = sys_str.substr(0, sys_str.size()-1 );
+
+sys_ss << "sleep "<< sleep_s <<"; "
+  << sys_str << "; sleep " << sleep_s << ";";
+
+if( system(sys_ss.str().c_str()) == -1 )
   {
   stringstream ss;
-  ss << "Sam2bam system call error with " << sys << "\n";
+  ss << "Sam2bam system call error with " << sys_str << "\n";
   throw runtime_error( ss.str() );
   }
 }
@@ -177,8 +184,9 @@ void funct_sam2bam( string& file )
 {  // Converts a given sam file to bam, sorts and indexes it
 string sys, path = file.substr( 0, file.find_last_of("/")+1 );
 
-sys = "samtools view -bhS " + file + " | samtools sort -@ 12 - " + path
-  + "accepted_hits.sorted; samtools index " + path + "accepted_hits.sorted.bam;";
+sys = "samtools view -@ "+num_threads+" -bhS " + file
+  + " | samtools sort -@ "+num_threads+" - -o " + path + "accepted_hits.sorted.bam;"
+  + " samtools index -@ "+num_threads+" " + path + "accepted_hits.sorted.bam;";
 if(debug) cout << sys << "\n";
 exec_sys_call(sys);
 
@@ -280,7 +288,7 @@ ss << setprecision(3) << fixed
   << "%), with\n  " << ns_agree/(double)1000000 << "M nosplice-agree (" << ns_agree*100/(double)found_count
   << "%), \n  " << ns_disagree/(double)1000000 << "M nosplice-disagree (" << ns_disagree*100/(double)found_count
   << "%), \n  " << s_agree/(double)1000000 << "M splice-agree (" << s_agree*100/(double)found_count
-  << "%), i\n  " << s_disagree/(double)1000000 << "M splice-disagree (" << s_disagree*100/(double)found_count
+  << "%), and\n  " << s_disagree/(double)1000000 << "M splice-disagree (" << s_disagree*100/(double)found_count
   << "%),\n " << chr_discordant/(double)1000000 << "M chromosome discordant (" << chr_discordant*100/total << "%)\n"
   << clon_count/(double)1000000 << "M non-clonal reads also writen out (" << clon_count*100/(double)total << "%)\n";
 
@@ -327,8 +335,9 @@ if(!debug)
 
     enhanced_file = config_argv[1];
     masked_file = config_argv[2];
-    out_standard_path = config_argv[3];
-    out_nonclonal_path = config_argv[4];
+    num_threads = config_argv[3];
+    out_standard_path = config_argv[4];
+    out_nonclonal_path = config_argv[5];
     }
   else { cout << "Error reading the config file, terminating!"; return 1; }
   config_in.close();
@@ -337,8 +346,9 @@ else if(debug && argc == (int)num_arguments+1)
   {  // In debug mode, use command line arguments instead
   enhanced_file = argv[1];
   masked_file = argv[2];
-  out_standard_path = argv[3];
-  out_nonclonal_path = argv[4];
+  num_threads = argv[3];
+  out_standard_path = argv[4];
+  out_nonclonal_path = argv[5];
   }
 else if(debug && argc != (int)num_arguments+1)
   {cout << "Wrong number of arguments. Terminating!"; while( !cin.get() ); return 1;}
@@ -404,10 +414,10 @@ for(int chrn=0; chrn<24; chrn++) if( !debug || chrn == 19 || chrn == 20 || chrn 
   cout << "\nStart of " << chr_t << ". Extracting the reads from the bam files\n";
 
   // Extract the bam files reads, since they are randomly sorted
-  sys = "samtools view " + masked_file + " " + chr_t + " > "
+  sys = "samtools view -@ "+num_threads+" " + masked_file + " " + chr_t + " > "
     + mask_temp_file + ";";
   exec_sys_call(sys);
-  sys = "samtools view " + enhanced_file + " " + chr_t + " > "
+  sys = "samtools view -@ "+num_threads+" " + enhanced_file + " " + chr_t + " > "
     + enh_temp_file + ";";
   exec_sys_call(sys);
 
@@ -535,7 +545,8 @@ if( account_for_discordant )
 
 cout << "\nConverting merged output to .bam and sorting\n";
 merged_out.file.flush(); merged_out.close();
-funct_sam2bam( sys = out_standard_path+"accepted_hits.merged.sam" );
+sys = out_standard_path+"accepted_hits.merged.sam";
+funct_sam2bam( sys );
 
 // Now we read the merged sam file, put it in a hash, and print that out, to create a nonclonal output
 cout << "\nDone. Now removing clonal reads";  // Done separately rather than in parallel, to reduce ram footprint
@@ -546,7 +557,8 @@ for(int chrn=0; chrn<24; chrn++) if( !debug || chrn == 19 || chrn == 20 || chrn 
   cout << "\nStart of " << chr_t << ". Extracting the reads from the merged sam file.\n";
 
   // Extract the chr reads from the merged sam file
-  sys = "samtools view " + out_standard_path + "accepted_hits.sorted.bam " + chr_t + " > "
+  sys = "samtools view -@ "+num_threads+" "
+    + out_standard_path + "accepted_hits.sorted.bam " + chr_t + " > "
     + out_standard_path + "temp.sam;";
   exec_sys_call(sys);
 
@@ -586,15 +598,14 @@ funct_sam2bam( sys );
 funct_write_stats( found_count, concord_count, chr_discordant, enh_count, mask_count,
   masked_read_count, enh_read_count, ns_agree, ns_disagree, s_agree, s_disagree, clon_count, stats_out );
 
-
-cout << "\nDone!\n";
-
 sys = "rm " + enh_temp_file; exec_sys_call(sys);
 sys = "rm " + mask_temp_file; exec_sys_call(sys);
 sys = "rm " + out_standard_path + "temp.sam"; exec_sys_call(sys);
 
 header_in.close(); enhanced_in.close(); masked_in.close(); nonclon_out.close();
 stats_out.close(); enhanced_out.close(); masked_out.close(); common_out.close();
+
+cout << "\nAll done!\n";
 
 return 0;
 }

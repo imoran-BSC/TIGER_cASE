@@ -15,12 +15,14 @@ Each script can be compiled to a binary executable file by using
 ```g++ -Wall -o stepN_binary step_N.cpp ../utils/allelic_imba_common.cpp```
 
 Each binary expects a ```config.ini``` file residing in the same directory,
-containing the necessary arguments for the executions. Example config
-files are already included in this repository, with a brief description of 
-the type of the expected arguments, and of their particular formatting.
+containing the necessary arguments for the executions, in their expected 
+order. Example config files are already included in this repository, with 
+a brief description of  the type of the expected arguments, and of 
+their particular formatting.
 Prior to executing the binary, please _make sure that all the necessary 
-arguments in ```config.ini``` are correct_, and that they refer to the expected 
-data files. Otherwise, the execution will terminate unexpectedly.
+arguments in ```config.ini``` are correct_: that the order of the arguments
+was not altered, and that they refer to files that exist and that
+are formatted as expected. Otherwise, the execution will terminate unexpectedly.
 
 The resulting binary can then be executed in a unix terminal as follows:
 
