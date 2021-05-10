@@ -4,8 +4,7 @@
  *  Reads the indexed and sorted .bam files outputed from the
  *  ENHANCED and MASKED alignments, and outputs a MERGED standard
  *  and non-clonal .bam files.
- *  Performs many system calls to samtools, which is required to be
- *  installed and system-wide available.
+ *  REQUIRES samtools v1.7 installed system-wide to run.
  *
  *  Written by Ignasi Moran
  */
@@ -322,7 +321,7 @@ if(!debug) cout << "Initiating READ MERGER\n";
 else cout << "Initiating READ MERGER -- Debug mode --\n";
 
 {  // Opening inputs and outputs
-unsigned num_arguments = 4;
+unsigned num_arguments = 5;
 if(!debug)
   {  // Read input arguments from config file
   if( !config_in.open( "config.ini", "in", "config" ) )
